@@ -105,7 +105,11 @@ const ScannerScreen = () => {
   const selectScanMode = (mode) => {
     setScanMode(mode);
     if (mode === 'date') {
-      startDateCapture();
+      // Quando selecionar o modo data, iniciar a captura imediatamente
+      setDateCapturing(true);
+      setDetectedDates([]);
+      setSelectedDate(null);
+      setCapturedImage(null);
     } else {
       // Barcode mode
       setScanned(false);
@@ -711,6 +715,39 @@ const ScannerScreen = () => {
             Voltar ao Início
           </Button>
         </ScrollView>
+      ) : scanMode === 'date' ? (
+        // Tela para data de validade - Vai para o modal diretamente
+        <View style={styles.dateOnlyContainer}>
+          <Text style={styles.dateOnlyTitle}>Escaneamento de Data de Validade</Text>
+          <Text style={styles.dateOnlySubtitle}>Use a câmera para capturar a data de validade</Text>
+          
+          {expiryDate ? (
+            <View style={styles.dateResultContainer}>
+              <Text style={styles.dateResultLabel}>Data detectada:</Text>
+              <Text style={styles.dateResultValue}>{expiryDate}</Text>
+              
+              <Button
+                mode="contained"
+                onPress={startDateCapture}
+                style={styles.rescanButton}
+                icon="refresh"
+              >
+                Escanear Novamente
+              </Button>
+            </View>
+          ) : (
+            <ActivityIndicator size="large" color="#4CAF50" />
+          )}
+          
+          <Button
+            mode="outlined"
+            onPress={resetToModeSelection}
+            style={styles.dateBackButton}
+            icon="arrow-left"
+          >
+            Voltar ao Menu
+          </Button>
+        </View>
       ) : null}
       
       {renderDateCaptureModal()}
@@ -1032,6 +1069,41 @@ const styles = StyleSheet.create({
     left: 20,
     backgroundColor: 'rgba(0,0,0,0.5)',
     borderRadius: 20,
+  },
+  dateOnlyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dateOnlyTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  dateOnlySubtitle: {
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  dateResultContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  dateResultLabel: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  dateResultValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  rescanButton: {
+    marginTop: 10,
+  },
+  dateBackButton: {
+    marginTop: 10,
   },
 });
 
