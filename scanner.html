@@ -9,6 +9,8 @@
     <title>BR Mania - Scanner de Produtos</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Adicionar QuaggaJS direto via CDN - biblioteca alternativa sem Web Workers -->
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -210,9 +212,9 @@
             <h2>Scanner de Código de Barras</h2>
             
             <div class="scanner-container" id="scanner">
+                <div id="interactive" class="viewport" style="width: 100%; height: 100%;"></div>
                 <div class="scan-region"></div>
                 <div class="scan-line"></div>
-                <video id="preview" playsinline autoplay></video>
             </div>
             
             <div class="status" id="scanner-status">
@@ -276,15 +278,15 @@
             const expiryDate = document.getElementById('expiry-date');
             const saveBtn = document.getElementById('save-btn');
             const cancelBtn = document.getElementById('cancel-btn');
-            const preview = document.getElementById('preview');
             
-            let currentStream = null;
+            let quaggaInitialized = false;
             
             // Iniciar o scanner
             initScanner();
             
             // Alternar para entrada manual
             manualBtn.addEventListener('click', function() {
+                stopQuagga();
                 manualInput.classList.toggle('hidden');
                 this.classList.toggle('hidden');
             });
@@ -364,149 +366,96 @@
                 }
             }
             
-            // Função para inicializar o scanner usando a API nativa
+            // Função para inicializar o Quagga (biblioteca de leitura de códigos de barras)
             function initScanner() {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    scannerStatus.textContent = "Inicializando câmera...";
-                    
-                    // Parar stream existente se houver
-                    if (currentStream) {
-                        currentStream.getTracks().forEach(track => track.stop());
-                    }
-                    
-                    // Configurar preferências da câmera
-                    const constraints = {
-                        video: {
-                            facingMode: 'environment', // câmera traseira
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        }
-                    };
-                    
-                    navigator.mediaDevices.getUserMedia(constraints)
-                        .then(function(stream) {
-                            currentStream = stream;
-                            preview.srcObject = stream;
-                            
-                            // Em dispositivos móveis, é melhor carregar o ZXing aqui
-                            loadBarcodeDetector();
-                            
-                            scannerStatus.textContent = "Aponte a câmera para o código de barras do produto";
-                        })
-                        .catch(function(error) {
-                            console.error("Erro ao acessar a câmera:", error);
-                            scannerStatus.textContent = "Erro ao acessar a câmera: " + error.message;
-                            
-                            // Mostrar apenas a entrada manual se a câmera falhar
-                            manualBtn.click();
-                        });
-                } else {
+                scannerStatus.textContent = "Inicializando câmera...";
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                     scannerStatus.textContent = "Este navegador não suporta acesso à câmera";
                     manualBtn.click();
+                    return;
                 }
-            }
-            
-            // Carrega e inicializa o detector de código de barras
-            function loadBarcodeDetector() {
-                // Tentar usar a API BarcodeDetector nativa se disponível
-                if ('BarcodeDetector' in window) {
-                    try {
-                        const barcodeDetector = new BarcodeDetector({
-                            formats: ['ean_13', 'ean_8', 'code_128', 'qr_code', 'data_matrix']
-                        });
-                        
-                        startNativeDetection(barcodeDetector);
+                
+                // Verificar se já está inicializado para evitar duplicação
+                if (quaggaInitialized) {
+                    stopQuagga();
+                }
+                
+                // Inicializar Quagga
+                Quagga.init({
+                    inputStream: {
+                        name: "Live",
+                        type: "LiveStream",
+                        target: document.querySelector("#interactive"),
+                        constraints: {
+                            width: { min: 640 },
+                            height: { min: 480 },
+                            facingMode: "environment", // usar câmera traseira
+                            aspectRatio: { min: 1, max: 2 }
+                        },
+                    },
+                    locator: {
+                        patchSize: "medium",
+                        halfSample: true
+                    },
+                    numOfWorkers: 0,  // Importante: desativar workers
+                    frequency: 10,
+                    decoder: {
+                        readers: [
+                            "ean_reader",
+                            "ean_8_reader",
+                            "code_128_reader",
+                            "code_39_reader",
+                            "code_93_reader"
+                        ],
+                        debug: {
+                            showCanvas: false,
+                            showPatches: false,
+                            showFoundPatches: false,
+                            showSkeleton: false,
+                            showLabels: false,
+                            showPatchLabels: false,
+                            showRemainingPatchLabels: false,
+                        }
+                    },
+                    locate: true
+                }, function(err) {
+                    if (err) {
+                        console.error("Erro ao inicializar Quagga:", err);
+                        scannerStatus.textContent = "Erro ao inicializar câmera: " + err;
+                        manualBtn.click();
                         return;
-                    } catch (e) {
-                        console.log('Erro ao inicializar BarcodeDetector nativo:', e);
                     }
-                }
-                
-                // Alternativa: importar biblioteca zxing-js para detecção
-                // Usar versão que não depende de web workers em blob
-                const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.js';
-                script.onload = function() {
-                    try {
-                        // Tentar desabilitar o uso de web workers
-                        if (typeof ZXing !== 'undefined' && ZXing.BrowserMultiFormatReader) {
-                            startZXingDetection();
-                        } else {
-                            scannerStatus.textContent = "Erro ao carregar biblioteca de detecção";
-                        }
-                    } catch (e) {
-                        console.error('Erro ao inicializar ZXing:', e);
-                        scannerStatus.textContent = "Erro ao inicializar leitor. Use entrada manual.";
-                    }
-                };
-                script.onerror = function() {
-                    scannerStatus.textContent = "Não foi possível carregar o detector de código de barras";
-                };
-                document.body.appendChild(script);
-            }
-            
-            // Detecção com a API nativa BarcodeDetector
-            function startNativeDetection(detector) {
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                let scanning = true;
-                
-                function detectCodes() {
-                    if (!scanning) return;
                     
-                    if (preview.readyState === preview.HAVE_ENOUGH_DATA) {
-                        canvas.width = preview.videoWidth;
-                        canvas.height = preview.videoHeight;
-                        context.drawImage(preview, 0, 0, canvas.width, canvas.height);
-                        
-                        detector.detect(canvas)
-                            .then(barcodes => {
-                                if (barcodes.length > 0) {
-                                    const barcode = barcodes[0];
-                                    scanning = false;
-                                    processBarcode(barcode.rawValue);
-                                }
-                            })
-                            .catch(err => {
-                                console.error('Erro de detecção:', err);
-                            })
-                            .finally(() => {
-                                if (scanning) {
-                                    requestAnimationFrame(detectCodes);
-                                }
-                            });
-                    } else {
-                        requestAnimationFrame(detectCodes);
-                    }
-                }
-                
-                requestAnimationFrame(detectCodes);
+                    quaggaInitialized = true;
+                    scannerStatus.textContent = "Aponte a câmera para o código de barras do produto";
+                    
+                    // Iniciar o scanner
+                    Quagga.start();
+                    
+                    // Adicionar callback para detecção de código de barras
+                    Quagga.onDetected(function(result) {
+                        if (result && result.codeResult && result.codeResult.code) {
+                            const code = result.codeResult.code;
+                            stopQuagga();
+                            processBarcode(code);
+                        }
+                    });
+                });
             }
             
-            // Detecção usando a biblioteca ZXing
-            function startZXingDetection() {
-                try {
-                    const codeReader = new ZXing.BrowserMultiFormatReader();
-                    codeReader.decodeFromVideoDevice(null, 'preview', (result, error) => {
-                        if (result) {
-                            codeReader.reset();
-                            processBarcode(result.text);
-                        }
-                        // Ignorar erros - ZXing continua tentando automaticamente
-                    });
-                } catch (e) {
-                    console.error('Erro ao inicializar ZXing:', e);
-                    scannerStatus.textContent = "Erro ao inicializar leitor de código. Use a entrada manual.";
+            // Função para parar o Quagga
+            function stopQuagga() {
+                if (quaggaInitialized) {
+                    Quagga.stop();
+                    quaggaInitialized = false;
                 }
             }
             
             // Processar código de barras escaneado
             function processBarcode(code) {
-                // Parar a câmera
-                if (currentStream) {
-                    currentStream.getTracks().forEach(track => track.stop());
-                    currentStream = null;
-                }
+                // Parar o scanner
+                stopQuagga();
                 
                 // Preencher formulário do produto
                 productCode.value = code;
