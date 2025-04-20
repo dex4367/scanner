@@ -166,6 +166,32 @@
         #file-input {
             display: none;
         }
+        .permission-error {
+            background-color: #ffebee;
+            color: #d32f2f;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .permission-steps {
+            background-color: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: left;
+        }
+        
+        .permission-steps ol {
+            margin-left: 20px;
+            padding-left: 0;
+        }
+        
+        .permission-steps li {
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -199,6 +225,18 @@
         <div id="scanner-screen" class="hidden">
             <div class="card">
                 <h2>Escanear Código de Barras</h2>
+                <div id="camera-permission-error" class="permission-error hidden">
+                    <p>Não foi possível acessar a câmera do dispositivo</p>
+                    <div class="permission-steps">
+                        <h3>Como resolver:</h3>
+                        <ol>
+                            <li>Verifique se você permitiu o acesso à câmera quando solicitado</li>
+                            <li>Clique no ícone de cadeado/câmera na barra de endereço do navegador e permita o acesso</li>
+                            <li>Se estiver usando HTTP em vez de HTTPS, tente usar o upload de imagem abaixo</li>
+                            <li>Tente acessar em um navegador diferente (Chrome ou Firefox)</li>
+                        </ol>
+                    </div>
+                </div>
                 <div class="scanner-container">
                     <div id="reader">
                         <div id="scan-region-highlight"></div>
@@ -275,6 +313,42 @@
         if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
             document.getElementById('https-warning').classList.remove('hidden');
         }
+        
+        // Verificar suporte a sistema de arquivos
+        const hasFileSystemSupport = 'showOpenFilePicker' in window;
+        
+        // Observador para detectar alterações na permissão da câmera
+        function checkCameraPermission() {
+            navigator.permissions.query({name: 'camera'}).then(permissionStatus => {
+                console.log('Camera permission state:', permissionStatus.state);
+                
+                permissionStatus.onchange = function() {
+                    console.log('Camera permission state changed to:', this.state);
+                    if (this.state === 'granted') {
+                        // Se a permissão foi concedida, reiniciar o scanner
+                        if (permissionDenied) {
+                            permissionDenied = false;
+                            initScanner();
+                        }
+                    }
+                };
+                
+                if (permissionStatus.state === 'denied') {
+                    document.getElementById('camera-permission-error').classList.remove('hidden');
+                    permissionDenied = true;
+                }
+            }).catch(error => {
+                console.error('Error checking camera permission:', error);
+            });
+        }
+        
+        // Inicializar ao carregar
+        window.addEventListener('DOMContentLoaded', function() {
+            // Tentar verificar permissões
+            if (navigator.permissions && navigator.permissions.query) {
+                checkCameraPermission();
+            }
+        });
 
         // Initialize IndexedDB
         let db;
@@ -307,7 +381,14 @@
             document.getElementById(screenId).classList.remove('hidden');
             
             if (screenId === 'scanner-screen') {
-                initScanner();
+                // Verificar se já teve problemas de permissão antes
+                if (permissionDenied) {
+                    document.getElementById('camera-permission-error').classList.remove('hidden');
+                    document.getElementById('manual-controls').style.display = 'block';
+                    document.getElementById('scanner-status').innerText = "Use o upload de imagem abaixo";
+                } else {
+                    initScanner();
+                }
             } else if (screenId === 'products-screen') {
                 loadProducts();
             } else if (screenId === 'report-screen') {
@@ -321,6 +402,7 @@
         let isFlashOn = false;
         let cameras = [];
         let currentCameraIndex = 0;
+        let permissionDenied = false;
         
         function initScanner() {
             if (html5QrCode) {
@@ -329,6 +411,7 @@
             
             document.getElementById('scanner-result').classList.add('hidden');
             document.getElementById('scanner-status').innerText = "Procurando câmeras...";
+            document.getElementById('camera-permission-error').classList.add('hidden');
             
             html5QrCode = new Html5Qrcode("reader");
             
@@ -345,10 +428,14 @@
                     startScanner();
                 } else {
                     document.getElementById('scanner-status').innerText = "Nenhuma câmera encontrada!";
+                    // Mostrar apenas as opções de upload
+                    document.getElementById('manual-controls').style.display = 'block';
                 }
             }).catch(err => {
                 console.log('Error getting cameras', err);
                 document.getElementById('scanner-status').innerText = "Erro ao acessar câmeras: " + err.message;
+                document.getElementById('camera-permission-error').classList.remove('hidden');
+                permissionDenied = true;
             });
         }
         
@@ -401,13 +488,9 @@
                 ]
             };
             
+            // Usar configurações básicas primeiro para maior compatibilidade
             const cameraConfig = {
-                deviceId: cameraId,
-                // Configuração avançada da câmera
-                advanced: [{
-                    focusMode: "continuous", // Foco automático contínuo
-                    zoom: 0 // Sem zoom inicial
-                }]
+                facingMode: "environment" // Mais compatível que deviceId em alguns dispositivos
             };
             
             html5QrCode.start(
@@ -417,6 +500,7 @@
                 onScanError
             ).then(() => {
                 document.getElementById('scanner-status').innerText = "Scanner ativo! Aponte para um código de barras.";
+                document.getElementById('camera-permission-error').classList.add('hidden');
                 
                 // Verificar recursos disponíveis e ajustar a interface
                 html5QrCode.getRunningTrackCapabilities()
@@ -440,7 +524,15 @@
             .catch(err => {
                 console.error("Erro ao iniciar o scanner:", err);
                 document.getElementById('scanner-status').innerText = "Erro: " + err.message;
-                alert("Não foi possível acessar a câmera. Verifique se você deu as permissões necessárias.");
+                
+                // Mostrar o erro de permissão de câmera
+                document.getElementById('camera-permission-error').classList.remove('hidden');
+                permissionDenied = true;
+                
+                // Se for erro de permissão, não mostrar o alerta
+                if (!err.message.includes("permission")) {
+                    alert("Não foi possível acessar a câmera. Verifique as instruções na tela.");
+                }
             });
         }
         
@@ -676,41 +768,37 @@
             const file = event.target.files[0];
             document.getElementById('scanner-status').innerText = "Analisando imagem...";
             
-            // Parar a câmera temporariamente
-            if (html5QrCode) {
+            // Se o scanner estiver ativo, parar primeiro
+            if (html5QrCode && !permissionDenied) {
                 html5QrCode.stop().then(() => {
-                    // Escanear a imagem selecionada
-                    Html5Qrcode.scanFile(file, true)
-                        .then(decodedText => {
-                            // Se encontrou um código
-                            document.getElementById('scanner-status').innerText = "Código encontrado na imagem!";
-                            document.getElementById('product-code').value = decodedText;
-                            document.getElementById('product-name').value = `Produto ${decodedText}`;
-                            document.getElementById('scanner-result').classList.remove('hidden');
-                        })
-                        .catch(err => {
-                            // Se não encontrou, reiniciar o scanner
-                            document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem. Reiniciando scanner...";
-                            initScanner();
-                        });
+                    processFile(file);
                 }).catch(err => {
                     console.error("Erro ao parar scanner:", err);
-                    document.getElementById('scanner-status').innerText = "Erro ao processar imagem. Reiniciando scanner...";
-                    initScanner();
+                    processFile(file);
                 });
             } else {
-                // Se o scanner não estiver ativo, apenas tentar escanear a imagem
-                Html5Qrcode.scanFile(file, true)
-                    .then(decodedText => {
-                        document.getElementById('scanner-status').innerText = "Código encontrado na imagem!";
-                        document.getElementById('product-code').value = decodedText;
-                        document.getElementById('product-name').value = `Produto ${decodedText}`;
-                        document.getElementById('scanner-result').classList.remove('hidden');
-                    })
-                    .catch(err => {
-                        document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem.";
-                    });
+                // Processar diretamente se o scanner não estiver ativo
+                processFile(file);
             }
+        }
+        
+        function processFile(file) {
+            // Escanear a imagem selecionada
+            Html5Qrcode.scanFile(file, true)
+                .then(decodedText => {
+                    // Se encontrou um código
+                    document.getElementById('scanner-status').innerText = "Código encontrado na imagem!";
+                    document.getElementById('product-code').value = decodedText;
+                    document.getElementById('product-name').value = `Produto ${decodedText}`;
+                    document.getElementById('scanner-result').classList.remove('hidden');
+                })
+                .catch(err => {
+                    // Se não encontrou, mostrar mensagem
+                    document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem.";
+                    if (!permissionDenied) {
+                        initScanner();
+                    }
+                });
         }
     </script>
 </body>

@@ -1,21 +1,44 @@
 const express = require('express');
 const path = require('path');
+const os = require('os');
 const app = express();
-const PORT = process.env.PORT || 3000;
-const HOST = '0.0.0.0'; // Permite conexões de qualquer dispositivo na rede
+const port = process.env.PORT || 3000;
 
-// Serve static files from the current directory
-app.use(express.static(path.join(__dirname, '.')));
+// Servir arquivos estáticos
+app.use(express.static('./'));
 
-// Create a simple index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Detectar o IP local para acesso por outros dispositivos
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    let ipAddress = '';
+    
+    // Procurar por um endereço IPv4 não interno
+    Object.keys(interfaces).forEach((interfaceName) => {
+        interfaces[interfaceName].forEach((iface) => {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                ipAddress = iface.address;
+            }
+        });
+    });
+    
+    return ipAddress || 'localhost';
+}
+
+// Rota para diagnóstico de câmera
+app.get('/camera-check', (req, res) => {
+    res.sendFile(path.join(__dirname, 'camera-check.html'));
 });
 
-// Start the server
-app.listen(PORT, HOST, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Para acessar de outros dispositivos use: http://192.168.1.4:${PORT}`);
-  console.log("Para criar um túnel HTTPS temporário, execute em outro terminal:");
-  console.log("ngrok http 3000");
+// Rota principal
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Iniciar o servidor
+app.listen(port, () => {
+    const localIP = getLocalIP();
+    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Para acessar de outros dispositivos use: http://${localIP}:${port}`);
+    console.log(`Para criar um túnel HTTPS temporário, execute em outro terminal:`);
+    console.log(`ngrok http ${port}`);
 }); 

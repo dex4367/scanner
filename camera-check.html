@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Câmera</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        .warning {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+        .info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+        button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        #camera-container {
+            width: 100%;
+            max-width: 320px;
+            height: 240px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            background-color: #f5f5f5;
+            position: relative;
+        }
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .info-box {
+            background-color: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .steps {
+            margin-left: 20px;
+        }
+        .steps li {
+            margin-bottom: 10px;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste de Acesso à Câmera</h1>
+    
+    <div id="https-status" class="status"></div>
+    
+    <div id="camera-status" class="status">Clique em "Iniciar Câmera" para começar o teste</div>
+    
+    <div class="controls">
+        <button id="start-camera">Iniciar Câmera</button>
+        <button id="stop-camera" disabled>Parar Câmera</button>
+    </div>
+    
+    <div id="camera-container">
+        <video id="video" autoplay playsinline></video>
+    </div>
+    
+    <div class="info-box">
+        <h2>Informações de Diagnóstico:</h2>
+        <ul id="diagnostics"></ul>
+    </div>
+    
+    <div class="info-box">
+        <h2>Como resolver problemas de câmera:</h2>
+        <ol class="steps">
+            <li>Certifique-se de estar usando uma conexão HTTPS ou localhost</li>
+            <li>Verifique se você permitiu o acesso à câmera quando solicitado</li>
+            <li>Clique no ícone de cadeado/câmera na barra de endereço para verificar as permissões</li>
+            <li>Tente usar um navegador diferente (Chrome ou Firefox são recomendados)</li>
+            <li>Em alguns dispositivos, pode ser necessário reiniciar o navegador</li>
+        </ol>
+    </div>
+    
+    <div class="controls">
+        <button id="back-btn" onclick="window.location.href='/'">Voltar ao Scanner</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const startButton = document.getElementById('start-camera');
+            const stopButton = document.getElementById('stop-camera');
+            const video = document.getElementById('video');
+            const cameraStatus = document.getElementById('camera-status');
+            const httpsStatus = document.getElementById('https-status');
+            const diagnostics = document.getElementById('diagnostics');
+            
+            let stream = null;
+            
+            // Verificar HTTPS
+            if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+                httpsStatus.textContent = 'Conexão segura detectada. Bom!';
+                httpsStatus.className = 'status success';
+            } else {
+                httpsStatus.textContent = 'Atenção: Você está usando HTTP. Muitos navegadores só permitem acesso à câmera em conexões seguras (HTTPS) ou localhost.';
+                httpsStatus.className = 'status warning';
+            }
+            
+            // Adicionar informação de diagnóstico
+            function addDiagnostic(message, isError = false) {
+                const item = document.createElement('li');
+                item.textContent = message;
+                if (isError) {
+                    item.style.color = '#c62828';
+                }
+                diagnostics.appendChild(item);
+            }
+            
+            // Verificar suporte à API de câmera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                addDiagnostic('⚠️ Seu navegador não suporta a API de câmera', true);
+                cameraStatus.textContent = 'Seu navegador não suporta acesso à câmera';
+                cameraStatus.className = 'status error';
+                startButton.disabled = true;
+            } else {
+                addDiagnostic('✓ Seu navegador suporta a API de câmera');
+            }
+            
+            // Tentativa de acessar a câmera
+            startButton.addEventListener('click', function() {
+                cameraStatus.textContent = 'Solicitando acesso à câmera...';
+                cameraStatus.className = 'status info';
+                
+                const constraints = {
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+                
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        video.srcObject = mediaStream;
+                        
+                        cameraStatus.textContent = 'Câmera funcionando!';
+                        cameraStatus.className = 'status success';
+                        
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        
+                        addDiagnostic('✓ Acesso à câmera concedido');
+                        
+                        // Obter informações sobre a câmera
+                        const videoTrack = mediaStream.getVideoTracks()[0];
+                        const capabilities = videoTrack.getCapabilities();
+                        
+                        addDiagnostic(`✓ Câmera ativa: ${videoTrack.label}`);
+                        
+                        if (capabilities) {
+                            if (capabilities.torch) {
+                                addDiagnostic('✓ Sua câmera suporta flash');
+                            }
+                            if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
+                                addDiagnostic('✓ Sua câmera suporta foco automático contínuo');
+                            }
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Erro ao acessar a câmera:', error);
+                        
+                        let errorMessage = 'Não foi possível acessar a câmera.';
+                        
+                        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                            errorMessage = 'Permissão para acessar a câmera foi negada.';
+                            addDiagnostic('⚠️ Permissão para a câmera negada', true);
+                        } else if (error.name === 'NotFoundError') {
+                            errorMessage = 'Nenhuma câmera encontrada no dispositivo.';
+                            addDiagnostic('⚠️ Nenhuma câmera encontrada', true);
+                        } else if (error.name === 'NotReadableError') {
+                            errorMessage = 'A câmera está sendo usada por outro aplicativo.';
+                            addDiagnostic('⚠️ Câmera já está em uso por outro aplicativo', true);
+                        } else {
+                            addDiagnostic(`⚠️ Erro ao acessar a câmera: ${error.name}`, true);
+                        }
+                        
+                        cameraStatus.textContent = errorMessage;
+                        cameraStatus.className = 'status error';
+                    });
+            });
+            
+            // Parar a câmera
+            stopButton.addEventListener('click', function() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    stream = null;
+                    
+                    cameraStatus.textContent = 'Câmera parada';
+                    cameraStatus.className = 'status info';
+                    
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    
+                    addDiagnostic('✓ Câmera parada manualmente');
+                }
+            });
+            
+            // Verificar tipo de dispositivo
+            const userAgent = navigator.userAgent;
+            if (/android/i.test(userAgent)) {
+                addDiagnostic('✓ Dispositivo Android detectado');
+            } else if (/iPad|iPhone|iPod/.test(userAgent)) {
+                addDiagnostic('✓ Dispositivo iOS detectado');
+                addDiagnostic('ℹ️ iOS pode ter limitações adicionais de acesso à câmera');
+            } else {
+                addDiagnostic('✓ Dispositivo desktop detectado');
+            }
+            
+            // Verificar navegador
+            if (/chrome/i.test(userAgent)) {
+                addDiagnostic('✓ Navegador Chrome/Chromium detectado');
+            } else if (/firefox/i.test(userAgent)) {
+                addDiagnostic('✓ Navegador Firefox detectado');
+            } else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) {
+                addDiagnostic('✓ Navegador Safari detectado');
+            } else if (/edge/i.test(userAgent)) {
+                addDiagnostic('✓ Navegador Edge detectado');
+            } else {
+                addDiagnostic('⚠️ Navegador não identificado, pode haver limitações', true);
+            }
+        });
+    </script>
+</body>
+</html> 
