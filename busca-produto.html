@@ -6,13 +6,28 @@
   <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * blob: 'self' https: data:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
   <title>Inventário de Produtos BR Mania</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --primary: #00843D;
+      --primary-dark: #00632E;
+      --primary-light: #4CAF50;
+      --primary-gradient: linear-gradient(135deg, #00843D 0%, #4CAF50 100%);
       --secondary: #ED1B24;
-      --light: #f5f5f5;
-      --dark: #333333;
-      --gray: #e0e0e0;
+      --secondary-dark: #C41018;
+      --secondary-light: #FF5C63;
+      --secondary-gradient: linear-gradient(135deg, #ED1B24 0%, #FF5C63 100%);
+      --light: #f8f9fa;
+      --dark: #212529;
+      --gray: #e9ecef;
+      --gray-dark: #6c757d;
+      --white: #ffffff;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: all 0.3s ease;
     }
     
     * {
@@ -22,53 +37,112 @@
     }
     
     body {
-      font-family: 'Roboto', 'Segoe UI', sans-serif;
+      font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
       background-color: var(--light);
       color: var(--dark);
       min-height: 100vh;
+      line-height: 1.6;
     }
     
     header {
-      background-color: var(--primary);
+      background: var(--primary-gradient);
       color: white;
-      padding: 1rem;
+      padding: 1.5rem 1rem;
       text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+      pointer-events: none;
     }
     
     .logo {
-      font-size: 1.5rem;
-      font-weight: bold;
+      font-size: 2rem;
+      font-weight: 700;
       margin-bottom: 0.5rem;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      letter-spacing: 1px;
     }
     
     .logo span {
       color: var(--secondary);
+      position: relative;
+    }
+    
+    .logo span::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--secondary);
+      border-radius: 3px;
     }
     
     h1 {
       font-size: 1.2rem;
       margin: 0;
+      font-weight: 400;
+      opacity: 0.9;
     }
     
     .container {
-      max-width: 600px;
-      margin: 1rem auto;
-      padding: 1rem;
+      max-width: 800px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
     }
     
     .card {
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 1rem;
-      margin-bottom: 1rem;
+      background-color: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: var(--transition);
+      border-top: 5px solid var(--primary);
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-5px);
+    }
+    
+    .card h2 {
+      color: var(--primary);
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .card h2 i {
+      font-size: 1.2rem;
     }
     
     .form-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+    
+    .form-group i {
+      position: absolute;
+      left: 1rem;
+      top: 2.7rem;
+      color: var(--gray-dark);
     }
     
     label {
@@ -76,99 +150,175 @@
       margin-bottom: 0.5rem;
       font-weight: 500;
       color: var(--dark);
+      font-size: 0.9rem;
     }
     
     input, button {
       width: 100%;
-      padding: 0.75rem;
-      border-radius: 6px;
+      padding: 0.85rem;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--gray);
+      font-family: 'Poppins', sans-serif;
       font-size: 1rem;
+      transition: var(--transition);
+    }
+    
+    input {
+      padding-left: 2.5rem;
+      background-color: var(--light);
     }
     
     input:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(0,132,61,0.2);
+      box-shadow: 0 0 0 3px rgba(0,132,61,0.2);
     }
     
     button {
-      background-color: var(--primary);
+      background: var(--primary-gradient);
       color: white;
       border: none;
-      font-weight: bold;
+      font-weight: 500;
       cursor: pointer;
-      transition: background-color 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0,132,61,0.2);
     }
     
     button:hover {
-      background-color: #006e33;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0,132,61,0.25);
+    }
+    
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0,132,61,0.2);
     }
     
     .secondary-btn {
-      background-color: var(--secondary);
+      background: var(--secondary-gradient);
+      box-shadow: 0 4px 6px rgba(237,27,36,0.2);
     }
     
     .secondary-btn:hover {
-      background-color: #d01018;
+      background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--secondary) 100%);
+      box-shadow: 0 6px 8px rgba(237,27,36,0.25);
     }
     
     .outline-btn {
-      background-color: transparent;
+      background: transparent;
       color: var(--primary);
-      border: 1px solid var(--primary);
+      border: 2px solid var(--primary);
+      font-weight: 500;
+      box-shadow: none;
     }
     
     .outline-btn:hover {
-      background-color: rgba(0,132,61,0.05);
+      background: rgba(0,132,61,0.05);
+      box-shadow: none;
+      transform: translateY(-2px);
     }
     
     #resultado {
-      margin-top: 1rem;
+      margin-top: 1.5rem;
       padding: 1rem;
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
       background-color: var(--light);
-      font-size: 16px;
+      font-size: 0.95rem;
       min-height: 20px;
+      transition: var(--transition);
     }
     
     .loading {
       text-align: center;
       color: var(--primary);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border: 2px solid var(--primary);
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spinner 0.8s linear infinite;
+    }
+    
+    @keyframes spinner {
+      to {
+        transform: rotate(360deg);
+      }
     }
     
     .error {
       color: var(--secondary);
       border-left: 4px solid var(--secondary);
-      padding-left: 0.5rem;
+      padding-left: 1rem;
+      background-color: rgba(237,27,36,0.05);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     }
     
     .success {
       color: var(--primary);
+      border-left: 4px solid var(--primary);
+      padding-left: 1rem;
+      background-color: rgba(0,132,61,0.05);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     }
     
     .produto-info {
-      margin-top: 0.5rem;
-      padding: 0.75rem;
+      margin-top: 1rem;
+      padding: 1rem;
       border-left: 4px solid var(--primary);
       background-color: rgba(0,132,61,0.05);
-      border-radius: 0 4px 4px 0;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 0.95rem;
     }
     
     .produtos-container {
-      margin-top: 1rem;
-      max-height: 300px;
+      margin-top: 1.5rem;
+      max-height: 350px;
       overflow-y: auto;
       border: 1px solid var(--gray);
-      border-radius: 6px;
+      border-radius: var(--radius-sm);
+      background-color: var(--light);
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary) var(--light);
+    }
+    
+    .produtos-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .produtos-container::-webkit-scrollbar-thumb {
+      background-color: var(--primary);
+      border-radius: 4px;
+    }
+    
+    .produtos-container::-webkit-scrollbar-track {
+      background-color: var(--light);
     }
     
     .produto-item {
-      padding: 0.75rem;
+      padding: 1rem;
       border-bottom: 1px solid var(--gray);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      background-color: var(--white);
+      transition: var(--transition);
+    }
+    
+    .produto-item:hover {
+      background-color: rgba(0,132,61,0.03);
     }
     
     .produto-item:last-child {
@@ -177,6 +327,22 @@
     
     .produto-item .info {
       flex: 1;
+    }
+    
+    .produto-item .info strong {
+      color: var(--primary-dark);
+      font-size: 1.05rem;
+    }
+    
+    .produto-item .info .codigo-text {
+      color: var(--gray-dark);
+      font-size: 0.9rem;
+    }
+    
+    .produto-item .info .data-text {
+      color: var(--secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
     }
     
     .produto-item .actions {
@@ -191,12 +357,25 @@
       cursor: pointer;
       padding: 0.25rem;
       width: auto;
+      height: 2rem;
+      width: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+    
+    .delete-btn:hover {
+      background-color: rgba(237,27,36,0.1);
+      transform: scale(1.1);
     }
     
     .btn-group {
       display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
+      gap: 0.8rem;
+      margin-top: 1.5rem;
     }
     
     .btn-group button {
@@ -206,16 +385,64 @@
     .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
+      gap: 1rem;
+    }
+    
+    .empty-list {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--gray-dark);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .empty-list i {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+    
+    .badge-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 0 0.75rem;
+      }
+      
+      .card {
+        padding: 1.25rem;
+      }
+      
+      header {
+        padding: 1.25rem 1rem;
+      }
+      
+      .logo {
+        font-size: 1.75rem;
+      }
     }
     
     @media (max-width: 480px) {
       .container {
-        padding: 0.5rem;
+        padding: 0 0.5rem;
       }
       
       .card {
-        padding: 0.75rem;
+        padding: 1rem;
       }
       
       h1 {
@@ -225,25 +452,45 @@
       .two-col {
         grid-template-columns: 1fr;
       }
+      
+      .btn-group {
+        flex-direction: column;
+      }
     }
     
-    .empty-list {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: #777;
+    .shake {
+      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    }
+    
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
+      40%, 60% { transform: translate3d(3px, 0, 0); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
   <header>
     <div class="logo">BR <span>MANIA</span></div>
-    <h1>Inventário de Produtos</h1>
+    <h1>Sistema de Inventário e Controle de Produtos</h1>
   </header>
 
   <div class="container">
-    <div class="card">
+    <div class="card fade-in">
+      <h2><i class="fas fa-barcode"></i> Cadastro de Produtos</h2>
       <div class="form-group">
         <label for="codigoInput">Código de Barras:</label>
+        <i class="fas fa-barcode"></i>
         <input
           type="text"
           id="codigoInput"
@@ -255,6 +502,7 @@
       
       <div class="form-group">
         <label for="nomeInput">Nome do Produto:</label>
+        <i class="fas fa-box"></i>
         <input
           type="text"
           id="nomeInput"
@@ -264,6 +512,7 @@
       
       <div class="form-group">
         <label for="dataInput">Data de Validade:</label>
+        <i class="fas fa-calendar-alt"></i>
         <input
           type="text"
           id="dataInput"
@@ -273,22 +522,26 @@
       </div>
       
       <div class="btn-group">
-        <button id="buscarBtn">Buscar por Código</button>
-        <button id="adicionarBtn" class="secondary-btn">Adicionar Produto</button>
+        <button id="buscarBtn"><i class="fas fa-search"></i> Buscar por Código</button>
+        <button id="adicionarBtn" class="secondary-btn"><i class="fas fa-plus"></i> Adicionar Produto</button>
       </div>
       
       <div id="resultado"></div>
     </div>
     
-    <div class="card">
-      <h2>Produtos Registrados</h2>
+    <div class="card fade-in">
+      <h2><i class="fas fa-clipboard-list"></i> Produtos Registrados <span class="badge badge-primary" id="contadorProdutos">0</span></h2>
       <div id="produtosContainer" class="produtos-container">
-        <div class="empty-list">Nenhum produto registrado</div>
+        <div class="empty-list">
+          <i class="fas fa-shopping-basket"></i>
+          <p>Nenhum produto registrado</p>
+          <small>Adicione produtos usando o formulário acima</small>
+        </div>
       </div>
       
       <div class="btn-group">
-        <button id="limparBtn" class="outline-btn">Limpar Lista</button>
-        <button id="gerarPdfBtn">Gerar PDF</button>
+        <button id="limparBtn" class="outline-btn"><i class="fas fa-trash-alt"></i> Limpar Lista</button>
+        <button id="gerarPdfBtn"><i class="fas fa-file-pdf"></i> Gerar Relatório PDF</button>
       </div>
     </div>
   </div>
@@ -296,6 +549,11 @@
   <script>
     // Armazenamento de produtos
     let produtos = [];
+    
+    // Atualizar contador
+    function atualizarContador() {
+      document.getElementById("contadorProdutos").textContent = produtos.length;
+    }
     
     // Formatação de data
     function formatarData(input) {
@@ -345,10 +603,14 @@
       if (!codigo) {
         resultadoEl.textContent = "Por favor, insira um código válido.";
         resultadoEl.className = "error";
+        document.getElementById("codigoInput").classList.add("shake");
+        setTimeout(() => {
+          document.getElementById("codigoInput").classList.remove("shake");
+        }, 500);
         return;
       }
 
-      resultadoEl.textContent = "Buscando...";
+      resultadoEl.innerHTML = '<div class="loading">Buscando produto</div>';
       resultadoEl.className = "loading";
 
       try {
@@ -368,10 +630,10 @@
             nomeInput.value = data.nome;
             
             resultadoEl.innerHTML = `
-              <div class="produto-info">
-                <strong>Produto:</strong> ${data.nome || "Nome não disponível"}<br>
-                <strong>Tipo:</strong> ${data.tipo || "N/D"}<br>
-                <strong>Código:</strong> ${codigo}
+              <div class="produto-info fade-in">
+                <strong style="font-size: 1.1rem; color: var(--primary-dark);">${data.nome || "Nome não disponível"}</strong>
+                <p><i class="fas fa-tag"></i> Tipo: ${data.tipo || "N/D"}</p>
+                <p><i class="fas fa-barcode"></i> Código: ${codigo}</p>
               </div>`;
             resultadoEl.className = "success";
             return;
@@ -380,7 +642,7 @@
         
         // Se chegou aqui, a primeira API falhou ou não encontrou o produto
         // Tentar API alternativa
-        resultadoEl.textContent = "Tentando API alternativa...";
+        resultadoEl.innerHTML = '<div class="loading">Buscando em fonte alternativa</div>';
         
         const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${codigo}`, {
           method: 'GET',
@@ -401,10 +663,10 @@
             nomeInput.value = alternativeData.description;
             
             resultadoEl.innerHTML = `
-              <div class="produto-info">
-                <strong>Produto:</strong> ${alternativeData.description || "Nome não disponível"}<br>
-                <strong>Marca:</strong> ${alternativeData.brand ? alternativeData.brand.name : "N/D"}<br>
-                <strong>Código:</strong> ${codigo}
+              <div class="produto-info fade-in">
+                <strong style="font-size: 1.1rem; color: var(--primary-dark);">${alternativeData.description || "Nome não disponível"}</strong>
+                <p><i class="fas fa-building"></i> Marca: ${alternativeData.brand ? alternativeData.brand.name : "N/D"}</p>
+                <p><i class="fas fa-barcode"></i> Código: ${codigo}</p>
               </div>`;
             resultadoEl.className = "success";
             return;
@@ -412,12 +674,12 @@
         }
         
         // Se chegou aqui, nenhuma API funcionou
-        resultadoEl.textContent = "Produto não encontrado. Digite o nome manualmente.";
+        resultadoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Produto não encontrado. Digite o nome manualmente.`;
         resultadoEl.className = "error";
         
       } catch (err) {
         console.error("Erro geral:", err);
-        resultadoEl.textContent = "Erro ao consultar as APIs. Digite o nome manualmente.";
+        resultadoEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro ao consultar as APIs. Digite o nome manualmente.`;
         resultadoEl.className = "error";
       }
     }
@@ -429,15 +691,27 @@
       const resultadoEl = document.getElementById("resultado");
       
       if (!codigo || !nome) {
-        resultadoEl.textContent = "Por favor, preencha o código e o nome do produto.";
+        resultadoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Por favor, preencha o código e o nome do produto.`;
         resultadoEl.className = "error";
+        
+        if (!codigo) document.getElementById("codigoInput").classList.add("shake");
+        if (!nome) document.getElementById("nomeInput").classList.add("shake");
+        
+        setTimeout(() => {
+          document.getElementById("codigoInput").classList.remove("shake");
+          document.getElementById("nomeInput").classList.remove("shake");
+        }, 500);
         return;
       }
       
       // Validar formato da data
       if (data && !/^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
-        resultadoEl.textContent = "Por favor, insira a data no formato DD/MM/AAAA.";
+        resultadoEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Por favor, insira a data no formato DD/MM/AAAA.`;
         resultadoEl.className = "error";
+        document.getElementById("dataInput").classList.add("shake");
+        setTimeout(() => {
+          document.getElementById("dataInput").classList.remove("shake");
+        }, 500);
         return;
       }
       
@@ -451,15 +725,16 @@
       
       produtos.push(produto);
       
-      // Atualizar a lista
+      // Atualizar a lista e contador
       atualizarListaProdutos();
+      atualizarContador();
       
       // Limpar campos
       document.getElementById("codigoInput").value = "";
       document.getElementById("nomeInput").value = "";
       document.getElementById("dataInput").value = "";
       
-      resultadoEl.textContent = `Produto "${nome}" adicionado com sucesso!`;
+      resultadoEl.innerHTML = `<i class="fas fa-check-circle"></i> Produto "${nome}" adicionado com sucesso!`;
       resultadoEl.className = "success";
       
       // Focar no campo de código para facilitar nova adição
@@ -470,7 +745,12 @@
       const container = document.getElementById("produtosContainer");
       
       if (produtos.length === 0) {
-        container.innerHTML = '<div class="empty-list">Nenhum produto registrado</div>';
+        container.innerHTML = `
+          <div class="empty-list">
+            <i class="fas fa-shopping-basket"></i>
+            <p>Nenhum produto registrado</p>
+            <small>Adicione produtos usando o formulário acima</small>
+          </div>`;
         return;
       }
       
@@ -478,14 +758,14 @@
       
       produtos.forEach((produto, index) => {
         html += `
-          <div class="produto-item">
+          <div class="produto-item fade-in">
             <div class="info">
               <strong>${produto.nome}</strong><br>
-              Código: ${produto.codigo}
-              ${produto.data ? `<br>Validade: ${produto.data}` : ''}
+              <span class="codigo-text"><i class="fas fa-barcode"></i> ${produto.codigo}</span>
+              ${produto.data ? `<br><span class="data-text"><i class="fas fa-calendar-alt"></i> Validade: ${produto.data}</span>` : ''}
             </div>
             <div class="actions">
-              <button class="delete-btn" onclick="removerProduto(${index})">×</button>
+              <button class="delete-btn" onclick="removerProduto(${index})"><i class="fas fa-times"></i></button>
             </div>
           </div>
         `;
@@ -497,18 +777,26 @@
     function removerProduto(index) {
       produtos.splice(index, 1);
       atualizarListaProdutos();
+      atualizarContador();
     }
     
     function limparLista() {
+      if (produtos.length === 0) return;
+      
       if (confirm("Tem certeza que deseja limpar a lista de produtos?")) {
         produtos = [];
         atualizarListaProdutos();
+        atualizarContador();
       }
     }
     
     function gerarPDF() {
       if (produtos.length === 0) {
         alert("Adicione produtos à lista antes de gerar o PDF.");
+        document.getElementById("adicionarBtn").classList.add("shake");
+        setTimeout(() => {
+          document.getElementById("adicionarBtn").classList.remove("shake");
+        }, 500);
         return;
       }
       
@@ -517,59 +805,106 @@
       const doc = new jsPDF();
       
       // Título
-      doc.setFontSize(18);
+      doc.setFontSize(22);
       doc.setTextColor(0, 132, 61); // Verde BR Mania
-      doc.text("Relatório de Produtos BR MANIA", 105, 15, { align: "center" });
+      doc.text("RELATÓRIO DE PRODUTOS", 105, 20, { align: "center" });
+      
+      doc.setFontSize(16);
+      doc.setTextColor(237, 27, 36); // Vermelho BR Mania
+      doc.text("BR MANIA", 105, 30, { align: "center" });
       
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0); // Preto
       
       // Data atual
       const dataAtual = new Date().toLocaleDateString('pt-BR');
-      doc.text(`Data: ${dataAtual}`, 105, 25, { align: "center" });
+      const horaAtual = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+      doc.text(`Gerado em: ${dataAtual} às ${horaAtual}`, 105, 40, { align: "center" });
+      
+      // Informação do total
+      doc.setFontSize(12);
+      doc.setTextColor(0, 132, 61);
+      doc.text(`Total de produtos: ${produtos.length}`, 105, 48, { align: "center" });
+      
+      // Linha divisória
+      doc.setDrawColor(0, 132, 61);
+      doc.setLineWidth(0.5);
+      doc.line(20, 55, 190, 55);
       
       // Produtos
       doc.setFontSize(10);
-      let y = 40;
+      let y = 65;
       
       produtos.forEach((produto, index) => {
         // Se estiver perto do fim da página, criar nova página
         if (y > 270) {
           doc.addPage();
           y = 20;
+          
+          // Cabeçalho da nova página
+          doc.setFontSize(10);
+          doc.setTextColor(0, 132, 61);
+          doc.text("Relatório de Produtos BR MANIA - Continuação", 105, 10, { align: "center" });
+          doc.setDrawColor(0, 132, 61);
+          doc.setLineWidth(0.3);
+          doc.line(20, 15, 190, 15);
+          y = 25;
         }
         
-        doc.setFontSize(11);
+        doc.setFontSize(12);
         doc.setTextColor(0, 132, 61);
-        doc.text(`${index + 1}. ${produto.nome}`, 10, y);
+        doc.text(`${index + 1}. ${produto.nome}`, 20, y);
         
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
-        doc.text(`Código: ${produto.codigo}`, 15, y + 6);
+        doc.text(`Código: ${produto.codigo}`, 25, y + 6);
         
         if (produto.data) {
-          doc.text(`Validade: ${produto.data}`, 15, y + 12);
-          y += 18;
+          doc.setTextColor(237, 27, 36);
+          doc.text(`Validade: ${produto.data}`, 120, y + 6);
+          doc.setTextColor(0, 0, 0);
+          y += 15;
         } else {
-          y += 12;
+          y += 15;
+        }
+        
+        // Linha divisória entre produtos
+        if (index < produtos.length - 1) {
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.1);
+          doc.line(25, y - 5, 185, y - 5);
         }
       });
       
       // Rodapé
       const totalPaginas = doc.getNumberOfPages();
+      
       for (let i = 1; i <= totalPaginas; i++) {
         doc.setPage(i);
+        
+        // Linha de rodapé
+        doc.setDrawColor(0, 132, 61);
+        doc.setLineWidth(0.5);
+        doc.line(20, 280, 190, 280);
+        
         doc.setFontSize(8);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Página ${i} de ${totalPaginas}`, 105, 290, { align: "center" });
+        doc.text(`Página ${i} de ${totalPaginas}`, 105, 287, { align: "center" });
+        doc.text("BR MANIA - Sistema de Inventário", 20, 287);
+        doc.text(`Data: ${dataAtual}`, 190, 287, { align: "right" });
       }
       
       // Salvar PDF
-      doc.save(`relatorio_produtos_${dataAtual.replace(/\//g, '-')}.pdf`);
+      doc.save(`inventario_brmania_${dataAtual.replace(/\//g, '-')}.pdf`);
+      
+      const resultadoEl = document.getElementById("resultado");
+      resultadoEl.innerHTML = `<i class="fas fa-check-circle"></i> Relatório PDF gerado com sucesso!`;
+      resultadoEl.className = "success";
     }
     
     // Inicializar lista de produtos
     atualizarListaProdutos();
+    atualizarContador();
   </script>
 </body>
 </html> 
