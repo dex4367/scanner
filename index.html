@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner de Produtos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mui/material@5.0.0/dist/mui-material.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2196f3;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 4px;
+            width: 100%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button:hover {
+            background-color: #1976d2;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .scanner-container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        #reader {
+            width: 100%;
+            height: 300px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .product-list {
+            list-style: none;
+            padding: 0;
+        }
+        .product-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Scanner de Produtos</h1>
+    </div>
+    
+    <div class="container">
+        <!-- Home Screen -->
+        <div id="home-screen">
+            <button class="button" onclick="showScreen('scanner-screen')">
+                <span class="material-icons">camera_alt</span>
+                Escanear Produto
+            </button>
+            <button class="button" onclick="showScreen('products-screen')">
+                <span class="material-icons">list</span>
+                Produtos Cadastrados
+            </button>
+            <button class="button" onclick="showScreen('report-screen')">
+                <span class="material-icons">description</span>
+                Gerar Relatório
+            </button>
+        </div>
+
+        <!-- Scanner Screen -->
+        <div id="scanner-screen" class="hidden">
+            <div class="card">
+                <h2>Escanear Código de Barras</h2>
+                <div class="scanner-container">
+                    <div id="reader"></div>
+                </div>
+                <div id="scanner-result" class="hidden">
+                    <div class="form-group">
+                        <label for="product-code">Código do Produto</label>
+                        <input type="text" id="product-code" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-name">Nome do Produto</label>
+                        <input type="text" id="product-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="expiry-date">Data de Validade</label>
+                        <input type="date" id="expiry-date">
+                    </div>
+                    <button class="button" onclick="saveProduct()">Salvar Produto</button>
+                    <button class="button" onclick="resetScanner()">Escanear Novamente</button>
+                </div>
+                <button class="button" onclick="showScreen('home-screen')" style="margin-top: 20px;">Voltar</button>
+            </div>
+        </div>
+
+        <!-- Products Screen -->
+        <div id="products-screen" class="hidden">
+            <div class="card">
+                <h2>Produtos Cadastrados</h2>
+                <ul id="product-list" class="product-list">
+                    <!-- Products will be inserted here dynamically -->
+                </ul>
+                <button class="button" onclick="showScreen('home-screen')">Voltar</button>
+            </div>
+        </div>
+
+        <!-- Report Screen -->
+        <div id="report-screen" class="hidden">
+            <div class="card">
+                <h2>Relatório de Produtos</h2>
+                <p>Total de produtos: <span id="total-products">0</span></p>
+                <button class="button" onclick="generatePDF()">Gerar e Compartilhar PDF</button>
+                <button class="button" onclick="showScreen('home-screen')">Voltar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.0.9/dist/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script>
+        // Initialize IndexedDB
+        let db;
+        const request = indexedDB.open('ProductsDB', 1);
+        
+        request.onerror = function(event) {
+            console.error('Error opening database:', event.target.error);
+        };
+        
+        request.onupgradeneeded = function(event) {
+            db = event.target.result;
+            const objectStore = db.createObjectStore('products', { keyPath: 'id', autoIncrement: true });
+            objectStore.createIndex('code', 'code', { unique: false });
+            objectStore.createIndex('name', 'name', { unique: false });
+            objectStore.createIndex('expiryDate', 'expiryDate', { unique: false });
+        };
+        
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            loadProducts();
+        };
+        
+        // Screen navigation
+        function showScreen(screenId) {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('scanner-screen').classList.add('hidden');
+            document.getElementById('products-screen').classList.add('hidden');
+            document.getElementById('report-screen').classList.add('hidden');
+            
+            document.getElementById(screenId).classList.remove('hidden');
+            
+            if (screenId === 'scanner-screen') {
+                initScanner();
+            } else if (screenId === 'products-screen') {
+                loadProducts();
+            } else if (screenId === 'report-screen') {
+                updateTotalProducts();
+            }
+        }
+        
+        // Initialize the barcode scanner
+        let html5QrcodeScanner;
+        
+        function initScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.clear();
+            }
+            
+            document.getElementById('scanner-result').classList.add('hidden');
+            
+            html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader", 
+                { fps: 10, qrbox: 250 }, 
+                /* verbose= */ false
+            );
+            
+            html5QrcodeScanner.render(onScanSuccess);
+        }
+        
+        function onScanSuccess(decodedText) {
+            html5QrcodeScanner.clear();
+            
+            document.getElementById('product-code').value = decodedText;
+            document.getElementById('product-name').value = `Produto ${decodedText}`;
+            document.getElementById('scanner-result').classList.remove('hidden');
+        }
+        
+        function resetScanner() {
+            document.getElementById('scanner-result').classList.add('hidden');
+            initScanner();
+        }
+        
+        // Product management
+        function saveProduct() {
+            const code = document.getElementById('product-code').value;
+            const name = document.getElementById('product-name').value;
+            const expiryDate = document.getElementById('expiry-date').value;
+            
+            if (!code || !name || !expiryDate) {
+                alert('Por favor, preencha todos os campos!');
+                return;
+            }
+            
+            const transaction = db.transaction(['products'], 'readwrite');
+            const objectStore = transaction.objectStore('products');
+            const product = {
+                code: code,
+                name: name,
+                expiryDate: expiryDate
+            };
+            
+            const request = objectStore.add(product);
+            
+            request.onsuccess = function() {
+                alert('Produto salvo com sucesso!');
+                showScreen('products-screen');
+            };
+            
+            request.onerror = function() {
+                alert('Erro ao salvar o produto!');
+            };
+        }
+        
+        function loadProducts() {
+            const transaction = db.transaction(['products'], 'readonly');
+            const objectStore = transaction.objectStore('products');
+            const productsList = document.getElementById('product-list');
+            
+            productsList.innerHTML = '';
+            
+            objectStore.openCursor().onsuccess = function(event) {
+                const cursor = event.target.result;
+                
+                if (cursor) {
+                    const product = cursor.value;
+                    const listItem = document.createElement('li');
+                    listItem.className = 'product-item';
+                    
+                    const formattedDate = new Date(product.expiryDate).toLocaleDateString('pt-BR');
+                    
+                    listItem.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p>Código: ${product.code}</p>
+                        <p>Validade: ${formattedDate}</p>
+                        <button class="button" onclick="deleteProduct(${product.id})">Excluir</button>
+                    `;
+                    
+                    productsList.appendChild(listItem);
+                    cursor.continue();
+                } else if (productsList.innerHTML === '') {
+                    productsList.innerHTML = '<p>Nenhum produto cadastrado</p>';
+                }
+            };
+        }
+        
+        function deleteProduct(id) {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                const transaction = db.transaction(['products'], 'readwrite');
+                const objectStore = transaction.objectStore('products');
+                
+                objectStore.delete(id).onsuccess = function() {
+                    loadProducts();
+                };
+            }
+        }
+        
+        function updateTotalProducts() {
+            const transaction = db.transaction(['products'], 'readonly');
+            const objectStore = transaction.objectStore('products');
+            const countRequest = objectStore.count();
+            
+            countRequest.onsuccess = function() {
+                document.getElementById('total-products').textContent = countRequest.result;
+            };
+        }
+        
+        // PDF generation
+        function generatePDF() {
+            const transaction = db.transaction(['products'], 'readonly');
+            const objectStore = transaction.objectStore('products');
+            const products = [];
+            
+            objectStore.openCursor().onsuccess = function(event) {
+                const cursor = event.target.result;
+                
+                if (cursor) {
+                    products.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    if (products.length === 0) {
+                        alert('Não há produtos para gerar o relatório!');
+                        return;
+                    }
+                    
+                    // Sort products by expiry date
+                    products.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+                    
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Add title
+                    doc.setFontSize(20);
+                    doc.text('Relatório de Produtos', 105, 20, { align: 'center' });
+                    
+                    // Add date
+                    doc.setFontSize(12);
+                    doc.text(`Data do Relatório: ${new Date().toLocaleDateString('pt-BR')}`, 105, 30, { align: 'center' });
+                    
+                    // Add products
+                    doc.setFontSize(12);
+                    let y = 50;
+                    
+                    products.forEach((product, index) => {
+                        const formattedDate = new Date(product.expiryDate).toLocaleDateString('pt-BR');
+                        
+                        if (y > 270) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        
+                        doc.text(`Produto: ${product.name}`, 20, y);
+                        y += 10;
+                        doc.text(`Código: ${product.code}`, 20, y);
+                        y += 10;
+                        doc.text(`Validade: ${formattedDate}`, 20, y);
+                        y += 20;
+                    });
+                    
+                    // Save and open PDF
+                    doc.save('relatorio_produtos.pdf');
+                }
+            };
+        }
+    </script>
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</body>
+</html> 
