@@ -8,7 +8,7 @@ import * as SQLite from 'react-native-sqlite-storage';
 import * as ImagePicker from 'react-native-image-picker';
 import * as ImageManipulator from 'react-native-image-manipulator';
 import * as FileSystem from 'react-native-fs';
-import { TesseractPackage } from 'react-native-tesseract-ocr';
+import TesseractPackage from 'react-native-tesseract-ocr';
 
 const ScannerScreen = () => {
   const navigation = useNavigation();
@@ -471,9 +471,7 @@ const ScannerScreen = () => {
                 device={device}
                 isActive={dateCapturing}
                 photo={true}
-                zoom={0}
                 enableZoomGesture
-                flash={flash}
               />
             ) : (
               <View style={styles.cameraPlaceholder}>
@@ -492,8 +490,6 @@ const ScannerScreen = () => {
               >
                 <IconButton
                   icon={flash === 'on' ? 'flash' : 'flash-off'}
-                  size={24}
-                  color="white"
                 />
               </TouchableOpacity>
               
@@ -512,8 +508,6 @@ const ScannerScreen = () => {
               >
                 <IconButton
                   icon="image"
-                  size={24}
-                  color="white"
                 />
               </TouchableOpacity>
             </View>
@@ -622,7 +616,9 @@ const ScannerScreen = () => {
               style={styles.modeButton}
               onPress={() => selectScanMode('barcode')}
             >
-              <IconButton icon="barcode-scan" size={40} color="#2196f3" />
+              <IconButton 
+                icon="barcode-scan"
+              />
               <Text style={styles.modeButtonText}>Código de Barras</Text>
             </TouchableOpacity>
             
@@ -630,7 +626,9 @@ const ScannerScreen = () => {
               style={styles.modeButton}
               onPress={() => selectScanMode('date')}
             >
-              <IconButton icon="calendar-text" size={40} color="#4CAF50" />
+              <IconButton 
+                icon="calendar-text"
+              />
               <Text style={styles.modeButtonText}>Data de Validade</Text>
             </TouchableOpacity>
           </View>
@@ -657,7 +655,9 @@ const ScannerScreen = () => {
             style={styles.backButton}
             onPress={resetToModeSelection}
           >
-            <IconButton icon="arrow-left" size={24} color="white" />
+            <IconButton 
+              icon="arrow-left"
+            />
           </TouchableOpacity>
         </View>
       ) : scanMode === 'barcode' && scanned ? (
