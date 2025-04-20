@@ -92,7 +92,7 @@
         }
         .scanner-container {
             width: 100%;
-            height: 300px;
+            height: 60vh; /* Aumentar a altura para melhor visualização */
             margin: 15px 0;
             position: relative;
             border-radius: 8px;
@@ -104,30 +104,47 @@
             height: 100%;
             object-fit: cover;
         }
+        #interactive {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #interactive canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
         .scan-region {
             position: absolute;
             top: 50%;
             left: 50%;
-            width: 250px;
-            height: 100px;
+            width: 280px;
+            height: 140px;
             transform: translate(-50%, -50%);
-            border: 2px solid #00843D;
+            border: 3px solid #00843D;
             box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
+            border-radius: 8px;
             z-index: 10;
+            pointer-events: none;
         }
         .scan-line {
             position: absolute;
-            width: 100%;
-            height: 2px;
+            width: 280px;
+            height: 3px;
             background-color: #00843D;
             top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             animation: scanAnimation 2s linear infinite;
+            z-index: 11;
+            pointer-events: none;
         }
         @keyframes scanAnimation {
-            0% { top: 0; }
-            50% { top: 100%; }
-            100% { top: 0; }
+            0% { transform: translate(-50%, -80px); }
+            50% { transform: translate(-50%, 80px); }
+            100% { transform: translate(-50%, -80px); }
         }
         .form-group {
             margin-bottom: 15px;
@@ -147,10 +164,12 @@
         }
         .status {
             text-align: center;
-            padding: 10px;
+            padding: 12px;
             background-color: #f1f1f1;
             border-radius: 6px;
             margin: 10px 0;
+            font-weight: 500;
+            font-size: 16px;
         }
         .hidden {
             display: none;
@@ -161,7 +180,7 @@
                 font-size: 18px;
             }
             .scanner-container {
-                height: 50vh;
+                height: 65vh;
             }
             .card {
                 padding: 12px;
@@ -172,8 +191,8 @@
                 font-size: 16px;
             }
             .scan-region {
-                width: 200px;
-                height: 80px;
+                width: 240px;
+                height: 120px;
             }
         }
         /* iOS specific styles */
@@ -196,6 +215,73 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Dicas para escaneamento */
+        .scan-tips {
+            text-align: center;
+            padding: 10px;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        .scan-tips strong {
+            color: #00843D;
+        }
+        
+        /* Cantos do scanner para melhor visualização */
+        .scan-corners {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 280px;
+            height: 140px;
+            transform: translate(-50%, -50%);
+            z-index: 12;
+            pointer-events: none;
+        }
+        .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #FF6B00;
+            border-style: solid;
+            border-width: 0;
+        }
+        .top-left {
+            top: -3px;
+            left: -3px;
+            border-top-width: 3px;
+            border-left-width: 3px;
+            border-top-left-radius: 5px;
+        }
+        .top-right {
+            top: -3px;
+            right: -3px;
+            border-top-width: 3px;
+            border-right-width: 3px;
+            border-top-right-radius: 5px;
+        }
+        .bottom-left {
+            bottom: -3px;
+            left: -3px;
+            border-bottom-width: 3px;
+            border-left-width: 3px;
+            border-bottom-left-radius: 5px;
+        }
+        .bottom-right {
+            bottom: -3px;
+            right: -3px;
+            border-bottom-width: 3px;
+            border-right-width: 3px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        @media (max-width: 480px) {
+            .scan-corners {
+                width: 240px;
+                height: 120px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -215,10 +301,20 @@
                 <div id="interactive" class="viewport" style="width: 100%; height: 100%;"></div>
                 <div class="scan-region"></div>
                 <div class="scan-line"></div>
+                <div class="scan-corners">
+                    <div class="corner top-left"></div>
+                    <div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div>
+                    <div class="corner bottom-right"></div>
+                </div>
             </div>
             
             <div class="status" id="scanner-status">
                 Aponte a câmera para o código de barras do produto
+            </div>
+            
+            <div class="scan-tips">
+                <strong>Dicas:</strong> Mantenha o código de barras centralizado, bem iluminado e a uma distância de 10-15cm da câmera. Evite movimentos bruscos.
             </div>
             
             <button class="button" id="manual-btn">
@@ -381,25 +477,30 @@
                     stopQuagga();
                 }
                 
-                // Inicializar Quagga
+                // Inicializar Quagga com configurações otimizadas
                 Quagga.init({
                     inputStream: {
                         name: "Live",
                         type: "LiveStream",
                         target: document.querySelector("#interactive"),
                         constraints: {
-                            width: { min: 640 },
-                            height: { min: 480 },
+                            width: { min: 800, ideal: 1280, max: 1920 },
+                            height: { min: 600, ideal: 720, max: 1080 },
                             facingMode: "environment", // usar câmera traseira
                             aspectRatio: { min: 1, max: 2 }
                         },
                     },
                     locator: {
                         patchSize: "medium",
-                        halfSample: true
+                        halfSample: true,
+                        debug: {
+                            showCanvas: true,
+                            showPatches: true,
+                            showFoundPatches: true
+                        }
                     },
                     numOfWorkers: 0,  // Importante: desativar workers
-                    frequency: 10,
+                    frequency: 5,     // Aumentar a frequência
                     decoder: {
                         readers: [
                             "ean_reader",
@@ -408,14 +509,20 @@
                             "code_39_reader",
                             "code_93_reader"
                         ],
+                        multiple: false,
                         debug: {
-                            showCanvas: false,
-                            showPatches: false,
-                            showFoundPatches: false,
-                            showSkeleton: false,
-                            showLabels: false,
-                            showPatchLabels: false,
-                            showRemainingPatchLabels: false,
+                            showCanvas: true,
+                            showPatches: true,
+                            showFoundPatches: true,
+                            showSkeleton: true,
+                            showLabels: true,
+                            showPatchLabels: true,
+                            showRemainingPatchLabels: true,
+                            boxFromPatches: {
+                                showTransformed: true,
+                                showTransformedBox: true,
+                                showBB: true
+                            }
                         }
                     },
                     locate: true
@@ -437,8 +544,84 @@
                     Quagga.onDetected(function(result) {
                         if (result && result.codeResult && result.codeResult.code) {
                             const code = result.codeResult.code;
-                            stopQuagga();
-                            processBarcode(code);
+                            console.log("Código detectado:", code);
+                            
+                            // Verificar se o código tem um tamanho razoável (a maioria tem pelo menos 8 dígitos)
+                            if (code.length >= 8) {
+                                stopQuagga();
+                                processBarcode(code);
+                            } else {
+                                // Piscar o elemento de scanner para indicar que detectou mas o código é curto demais
+                                scannerContainer.style.backgroundColor = "#00843D";
+                                setTimeout(() => {
+                                    scannerContainer.style.backgroundColor = "#000";
+                                }, 300);
+                            }
+                        }
+                    });
+                    
+                    // Adicionar feedback para processamento
+                    Quagga.onProcessed(function(result) {
+                        const drawingCtx = Quagga.canvas.ctx.overlay;
+                        const drawingCanvas = Quagga.canvas.dom.overlay;
+                        
+                        if (result) {
+                            // Limpar o canvas
+                            if (drawingCtx) {
+                                drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                            }
+                            
+                            // Desenhar apenas se tivermos um resultado
+                            if (result.boxes) {
+                                drawingCtx.strokeStyle = "#00F";
+                                drawingCtx.lineWidth = 2;
+                                
+                                for (let i = 0; i < result.boxes.length; i++) {
+                                    drawingCtx.beginPath();
+                                    drawingCtx.moveTo(result.boxes[i][0], result.boxes[i][1]);
+                                    drawingCtx.lineTo(result.boxes[i][0], result.boxes[i][3]);
+                                    drawingCtx.lineTo(result.boxes[i][2], result.boxes[i][3]);
+                                    drawingCtx.lineTo(result.boxes[i][2], result.boxes[i][1]);
+                                    drawingCtx.lineTo(result.boxes[i][0], result.boxes[i][1]);
+                                    drawingCtx.stroke();
+                                }
+                            }
+                            
+                            // Se já temos um código de barras
+                            if (result.codeResult && result.codeResult.code) {
+                                const code = result.codeResult.code;
+                                scannerStatus.textContent = `Código detectado: ${code}`;
+                                
+                                // Verificar se o código tem um tamanho razoável
+                                if (code.length >= 8) {
+                                    drawingCtx.font = "24px Arial";
+                                    drawingCtx.fillStyle = "#00843D";
+                                    drawingCtx.fillText(`Código: ${code}`, 10, 20);
+                                    drawingCtx.strokeStyle = '#00843D';
+                                    drawingCtx.lineWidth = 4;
+                                }
+                                
+                                if (result.box) {
+                                    drawingCtx.strokeStyle = "#00843D";
+                                    drawingCtx.lineWidth = 2;
+                                    
+                                    drawingCtx.beginPath();
+                                    drawingCtx.moveTo(result.box[0], result.box[1]);
+                                    drawingCtx.lineTo(result.box[0], result.box[3]);
+                                    drawingCtx.lineTo(result.box[2], result.box[3]);
+                                    drawingCtx.lineTo(result.box[2], result.box[1]);
+                                    drawingCtx.lineTo(result.box[0], result.box[1]);
+                                    drawingCtx.stroke();
+                                }
+                                
+                                if (result.line) {
+                                    drawingCtx.strokeStyle = "#FF0000";
+                                    drawingCtx.beginPath();
+                                    drawingCtx.moveTo(result.line[0], result.line[1]);
+                                    drawingCtx.lineTo(result.line[2], result.line[3]);
+                                    drawingCtx.stroke();
+                                }
+                            }
                         }
                     });
                 });
