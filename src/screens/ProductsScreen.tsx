@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
-import { Card, Title, Paragraph, Button, Text } from 'react-native-paper';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { Card, Title, Paragraph, Button, Text, ActivityIndicator } from 'react-native-paper';
 import * as SQLite from 'react-native-sqlite-storage';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 
 interface Product {
   id: number;
@@ -12,13 +13,20 @@ interface Product {
 
 const ProductsScreen = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const isFocused = useIsFocused();
+  const navigation = useNavigation();
   const db = SQLite.openDatabase({ name: 'products.db' });
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (isFocused) {
+      loadProducts();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFocused]);
 
   const loadProducts = () => {
+    setLoading(true);
     db.transaction((tx) => {
       tx.executeSql(
         'SELECT * FROM products ORDER BY expiry_date ASC',
@@ -29,9 +37,12 @@ const ProductsScreen = () => {
             productsArray.push(rows.item(i));
           }
           setProducts(productsArray);
+          setLoading(false);
         },
         (_, error) => {
           console.log('Error loading products:', error);
+          setLoading(false);
+          return false;
         }
       );
     });
@@ -47,6 +58,7 @@ const ProductsScreen = () => {
         },
         (_, error) => {
           console.log('Error deleting product:', error);
+          return false;
         }
       );
     });
@@ -60,15 +72,40 @@ const ProductsScreen = () => {
         <Paragraph>Validade: {item.expiry_date}</Paragraph>
       </Card.Content>
       <Card.Actions>
-        <Button onPress={() => deleteProduct(item.id)}>Excluir</Button>
+        <Button onPress={() => deleteProduct(item.id)} textColor="#B71C1C">Excluir</Button>
       </Card.Actions>
     </Card>
   );
 
   return (
     <View style={styles.container}>
-      {products.length === 0 ? (
-        <Text style={styles.emptyText}>Nenhum produto cadastrado</Text>
+      <View style={styles.header}>
+        <Image
+          source={{ uri: 'https://www.brmania.com.br/wp-content/uploads/2023/01/logo-br-mania-1.png' }}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.headerTitle}>Produtos Cadastrados</Text>
+      </View>
+      
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00843D" />
+          <Text>Carregando produtos...</Text>
+        </View>
+      ) : products.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Nenhum produto cadastrado</Text>
+          <Button 
+            mode="contained" 
+            onPress={() => navigation.navigate('Scanner' as never)}
+            icon="barcode-scan"
+            style={styles.scanButton}
+            buttonColor="#00843D"
+          >
+            Escanear Produto
+          </Button>
+        </View>
       ) : (
         <FlatList
           data={products}
@@ -77,6 +114,13 @@ const ProductsScreen = () => {
           contentContainerStyle={styles.list}
         />
       )}
+      
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('Scanner' as never)}
+      >
+        <Text style={styles.fabIcon}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -84,18 +128,66 @@ const ProductsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    backgroundColor: '#00843D',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginLeft: 10,
+  },
+  logo: {
+    width: 100,
+    height: 40,
   },
   list: {
-    paddingBottom: 20,
+    padding: 10,
+    paddingBottom: 80,
   },
   card: {
     marginBottom: 10,
+    elevation: 2,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 20,
+    marginBottom: 20,
     fontSize: 16,
+  },
+  scanButton: {
+    marginTop: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    right: 20,
+    bottom: 20,
+    backgroundColor: '#00843D',
+    borderRadius: 28,
+    elevation: 8,
+  },
+  fabIcon: {
+    fontSize: 24,
+    color: 'white',
   },
 });
 
