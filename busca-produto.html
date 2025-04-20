@@ -62,6 +62,12 @@
     .success {
       color: #00843D;
     }
+    .produto-info {
+      margin-top: 10px;
+      padding: 10px;
+      border-left: 4px solid #00843D;
+      background-color: #f9f9f9;
+    }
   </style>
 </head>
 <body>
@@ -107,61 +113,68 @@
       resultadoEl.className = "loading";
 
       try {
+        // Primeiro tentamos a API do Brasil
         const res = await fetch(
           `https://brasilapi.com.br/api/codigos-barra/v1/${codigo}`
         );
 
-        if (!res.ok) {
-          throw new Error(`Status ${res.status}`);
+        console.log("Status BrasilAPI:", res.status);
+        
+        if (res.ok) {
+          const data = await res.json();
+          console.log("Dados BrasilAPI:", data);
+          
+          if (data && data.nome) {
+            // Corrigido para usar "nome" em vez de "produto"
+            resultadoEl.innerHTML = `
+              <div class="produto-info">
+                <strong>Produto:</strong> ${data.nome || "Nome não disponível"}<br>
+                <strong>Tipo:</strong> ${data.tipo || "N/D"}<br>
+                <strong>Código:</strong> ${codigo}
+              </div>`;
+            resultadoEl.className = "success";
+            return;
+          }
         }
-
-        const data = await res.json();
-
-        if (data && data.produto) {
-          resultadoEl.innerHTML = `<strong>Produto:</strong> ${data.produto}<br>
-                                 <strong>Marca:</strong> ${data.marca || "N/D"}`;
-          resultadoEl.className = "success";
-        } else {
-          resultadoEl.textContent = "Produto não encontrado.";
-          resultadoEl.className = "error";
+        
+        // Se chegou aqui, a primeira API falhou ou não encontrou o produto
+        // Tentar API alternativa
+        resultadoEl.textContent = "Tentando API alternativa...";
+        
+        const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${codigo}`, {
+          method: 'GET',
+          headers: {
+            'X-Cosmos-Token': 'g3FQ0LCr8G05pMOiDM9YyQ',
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log("Status Cosmos API:", alternativeRes.status);
+        
+        if (alternativeRes.ok) {
+          const alternativeData = await alternativeRes.json();
+          console.log("Dados Cosmos API:", alternativeData);
+          
+          if (alternativeData && alternativeData.description) {
+            resultadoEl.innerHTML = `
+              <div class="produto-info">
+                <strong>Produto:</strong> ${alternativeData.description || "Nome não disponível"}<br>
+                <strong>Marca:</strong> ${alternativeData.brand ? alternativeData.brand.name : "N/D"}<br>
+                <strong>Código:</strong> ${codigo}
+              </div>`;
+            resultadoEl.className = "success";
+            return;
+          }
         }
-      } catch (err) {
-        console.error(err);
-        resultadoEl.textContent = "Erro ao consultar a API.";
+        
+        // Se chegou aqui, nenhuma API funcionou
+        resultadoEl.textContent = "Produto não encontrado em nenhuma API.";
         resultadoEl.className = "error";
         
-        // Tentar a segunda API como fallback
-        try {
-          resultadoEl.textContent = "Tentando API alternativa...";
-          
-          // Tentar API alternativa
-          const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${codigo}`, {
-            method: 'GET',
-            headers: {
-              'X-Cosmos-Token': 'g3FQ0LCr8G05pMOiDM9YyQ',
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (alternativeRes.ok) {
-            const alternativeData = await alternativeRes.json();
-            if (alternativeData && alternativeData.description) {
-              resultadoEl.innerHTML = `<strong>Produto:</strong> ${alternativeData.description}<br>
-                                     <strong>Marca:</strong> ${alternativeData.brand ? alternativeData.brand.name : "N/D"}`;
-              resultadoEl.className = "success";
-            } else {
-              resultadoEl.textContent = "Produto não encontrado em nenhuma API.";
-              resultadoEl.className = "error";
-            }
-          } else {
-            resultadoEl.textContent = "Produto não encontrado em nenhuma API.";
-            resultadoEl.className = "error";
-          }
-        } catch (fallbackErr) {
-          console.error('Erro na API de fallback:', fallbackErr);
-          resultadoEl.textContent = "Não foi possível encontrar o produto em nenhuma fonte.";
-          resultadoEl.className = "error";
-        }
+      } catch (err) {
+        console.error("Erro geral:", err);
+        resultadoEl.textContent = "Erro ao consultar as APIs. Verifique sua conexão.";
+        resultadoEl.className = "error";
       }
     }
   </script>
