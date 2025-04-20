@@ -384,31 +384,84 @@
             
             // Banco de dados de produtos conhecidos
             const knownProducts = {
+                // Produtos Nestlé
                 "7891000053508": "Leite Condensado Moça Nestlé Lata 395g",
-                "7896029000016": "Leite Longa Vida Integral Elegê 1L",
                 "7891000100103": "Achocolatado Nescau 2.0 Lata 400g",
+                "7891000252826": "Chocolate ao Leite Nestlé 90g",
+                "7891000062265": "Farinha Láctea Nestlé Tradicional 210g",
+                "7891000305508": "Biscoito Passatempo Recheado Chocolate 130g",
+                "7891000258354": "Chocolate Kit Kat Nestlé 41.5g",
+                
+                // Laticínios
+                "7896029000016": "Leite Longa Vida Integral Elegê 1L",
+                "7896481100223": "Iogurte Natural Integral Itambé 170g",
+                "7891025700012": "Manteiga com Sal Aviação 200g",
+                "7891025103219": "Queijo Minas Frescal Itambé 500g",
+                "7891515401023": "Leite Condensado Italac 395g",
+                
+                // Bebidas
+                "7891141014529": "Refrigerante Coca-Cola 2L",
+                "7894900011517": "Refrigerante Guaraná Antarctica 2L",
+                "7891991000833": "Refrigerante Pepsi 2L",
+                "7891991011020": "Suco Pronto Del Valle Laranja 1L",
+                "7896649001011": "Água Mineral sem Gás Crystal 1.5L",
+                "7894000030031": "Cerveja Heineken Lata 350ml",
+                "7896072042604": "Cerveja Brahma Lata 350ml",
+                
+                // Café e Produtos de Café
                 "7891150050358": "Café Torrado e Moído Pilão 500g",
+                "7891150037373": "Café em Pó Pilão Tradicional 500g",
+                "7896089028935": "Café 3 Corações Tradicional 500g",
+                "7893000000186": "Café Melitta Tradicional 500g",
+                
+                // Alimentos Básicos
                 "7896005804316": "Arroz Branco Tipo 1 Tio João 5kg",
                 "7896292331190": "Feijão Carioca Camil 1kg",
-                "7891024134115": "Macarrão Espaguete Adria 500g",
-                "7896062401108": "Maionese Tradicional Hellmann's 500g",
-                "7891080147402": "Açúcar Refinado Especial União 1kg",
                 "7891030001284": "Farinha de Trigo Dona Benta 1kg",
+                "7891080147402": "Açúcar Refinado Especial União 1kg",
                 "7891098000033": "Óleo de Soja Liza 900ml",
-                "7891000252826": "Chocolate ao Leite Nestlé 90g",
-                "7891141014529": "Refrigerante Coca-Cola 2L",
-                "7891149201003": "Biscoito Recheado Oreo 90g", 
-                "7896276060024": "Margarina Qualy 500g",
-                "7891150037373": "Café em Pó Pilão Tradicional 500g",
-                "7891021006001": "Desodorante Rexona Men Active 150ml",
+                "7891107000504": "Sal Refinado Cisne 1kg",
+                
+                // Massas e Molhos
+                "7891024134115": "Macarrão Espaguete Adria 500g",
+                "7896241210591": "Macarrão Espaguete Renata 500g",
+                "7896036090487": "Molho de Tomate Tradicional Quero 340g",
+                "7896196700014": "Molho de Tomate Pomarola Tradicional 340g",
+                
+                // Biscoitos e Snacks
+                "7891149201003": "Biscoito Recheado Oreo 90g",
+                "7892840222949": "Biscoito Água e Sal Piraquê 240g",
+                "7891962037707": "Salgadinho Cheetos Requeijão 45g",
+                "7892840813865": "Biscoito Cream Cracker Piraquê 200g",
+                
+                // Condimentos
+                "7896062401108": "Maionese Tradicional Hellmann's 500g",
+                "7891700201215": "Ketchup Tradicional Heinz 397g",
+                "7894900011012": "Mostarda Tradicional Hemmer 200g",
+                
+                // Produtos de Limpeza
+                "7894650053034": "Água Sanitária Qboa 1L",
+                "7891022100008": "Detergente Líquido Limpol 500ml",
+                "7891020000197": "Detergente Líquido Ypê 500ml",
+                "7896094910157": "Sabão em Pó Omo Multiação 1.6kg",
+                "7894650032015": "Desinfetante Pinho Sol Original 500ml",
+                
+                // Higiene Pessoal
                 "7891010577100": "Sabonete Dove Original 90g",
+                "7891010045326": "Creme para Pentear Seda 295ml",
+                "7891021006001": "Desodorante Rexona Men Active 150ml",
                 "7500435146425": "Creme Dental Colgate Total 12 90g",
                 "7891024132555": "Papel Higiênico Neve Folha Dupla 12 rolos",
-                "7896094910157": "Sabão em Pó Omo Multiação 1.6kg",
-                "7894000010014": "Água Mineral sem Gás Crystal 510ml",
-                "7896072042604": "Cerveja Brahma Lata 350ml",
-                "7891010045326": "Creme para Pentear Seda 295ml",
-                "7891020000197": "Detergente Líquido Ypê 500ml"
+                "7896276060024": "Margarina Qualy 500g",
+                
+                // Produtos Populares Adicionais
+                "7894900530001": "Leite Fermentado Yakult 480g 6 Unidades",
+                "7790070411303": "Azeite de Oliva Extra Virgem Carbonell 500ml",
+                "7896423401714": "Biscoito Wafer Bauducco Chocolate 140g",
+                "7891962027654": "Salgadinho Elma Chips Ruffles Original 92g",
+                "7891000119501": "Cereal Matinal Nescau 300g",
+                "7891030004797": "Mistura para Bolo Dona Benta Chocolate 450g",
+                "7891121400601": "Refrigerante Sprite 2L"
             };
             
             // Iniciar o scanner
@@ -765,38 +818,58 @@
                             }
                         }
                         
-                        // Terceira tentativa - Mock API (para garantir que temos algo para testar)
-                        if (!produtoData) {
-                            try {
-                                // Simular uma API de produtos
-                                const mockData = {
-                                    codigo: barcode,
-                                    descricao: `Produto com código ${barcode}`,
-                                    marca: "Genérico",
-                                    categoria: "Diversos"
-                                };
-                                
-                                produtoData = mockData;
-                                console.log('Usando dados simulados:', produtoData);
-                            } catch (mockError) {
-                                console.error('Erro ao criar dados simulados:', mockError);
+                        // Gerar um nome de produto mais realista com base no código
+                        const categoriaPorPrefixo = {
+                            "789": "Produto Brasileiro",
+                            "790": "Produto Brasileiro",
+                            "77": "Bebida",
+                            "75": "Produto de Higiene",
+                            "76": "Alimento",
+                            "78": "Produto de Limpeza",
+                            "40": "Medicamento",
+                            "74": "Cosmético",
+                            "73": "Eletrônico",
+                            "72": "Vestuário"
+                        };
+                        
+                        // Encontrar categoria com base no prefixo
+                        let categoria = "Produto";
+                        for (const prefixo in categoriaPorPrefixo) {
+                            if (barcode.startsWith(prefixo)) {
+                                categoria = categoriaPorPrefixo[prefixo];
+                                break;
                             }
                         }
+                        
+                        // Gerar um nome genérico mais descritivo
+                        const mockData = {
+                            codigo: barcode,
+                            descricao: `${categoria} ${barcode.substring(0, 3)}-${barcode.substring(3, 7)}`,
+                            marca: categoria,
+                            categoria: categoria
+                        };
+                        
+                        // Usar dados da API ou os dados mockados
+                        const dadosFinais = produtoData || mockData;
+                        console.log('Dados finais para processamento:', dadosFinais);
                         
                         // Inicializar API do Gemini
                         const genAI = new googleGenerativeAI.GoogleGenerativeAI(API_KEY);
                         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
                         
                         // Construir o prompt com base nos dados obtidos
-                        let prompt;
-                        if (produtoData) {
-                            prompt = `Recebi esta resposta da API de produto:\n${JSON.stringify(produtoData)}\nPor favor, extraia apenas o nome completo do produto. Se não houver informação suficiente, responda com "Produto ${barcode}".`;
-                        } else {
-                            prompt = `Eu tenho um produto com o código de barras ${barcode}. 
-                            Por favor, forneça informações sobre este produto, como nome do produto.
-                            Responda apenas com o nome do produto, sem informações adicionais. 
-                            Se não souber o nome exato, faça uma estimativa baseada em produtos similares.`;
-                        }
+                        const prompt = `
+                        Recebi esta resposta de um produto com código de barras ${barcode}:
+                        ${JSON.stringify(dadosFinais)}
+                        
+                        Por favor, gere um nome realista e descritivo para este produto.
+                        O nome deve ser completo e informativo, no formato: [Tipo de Produto] [Marca] [Características/Tamanho].
+                        Exemplo: "Leite Condensado Moça Nestlé 395g" ou "Refrigerante Coca-Cola 2L".
+                        
+                        Não inclua o código de barras no nome.
+                        Não responda apenas com números.
+                        Responda APENAS com o nome do produto, sem textos adicionais.
+                        `;
                         
                         console.log('Enviando prompt para o Gemini:', prompt);
                         
@@ -807,6 +880,13 @@
                         
                         console.log('Resposta recebida do Gemini:', text);
                         
+                        // Verificar se o nome gerado contém apenas números ou é muito curto
+                        const apenasNumeros = /^\d+$/.test(text);
+                        if (apenasNumeros || text.length < 5) {
+                            console.log('Nome gerado inválido, usando nome baseado na categoria');
+                            return `${categoria} ${barcode.substring(0, 3)}-${barcode.substring(3, 7)}`;
+                        }
+                        
                         return text;
                     } catch (error) {
                         console.error('Erro ao buscar informações do produto:', error);
@@ -814,8 +894,28 @@
                     }
                 } catch (error) {
                     console.error('Erro geral na busca de produto:', error);
-                    // Retorna um nome genérico em caso de erro
-                    return `Produto ${barcode.substring(0, 6)}`;
+                    
+                    // Encontrar categoria com base no prefixo para nome de fallback
+                    const prefixos = {
+                        "789": "Produto Brasileiro",
+                        "790": "Produto Brasileiro",
+                        "77": "Bebida",
+                        "75": "Higiene",
+                        "76": "Alimento",
+                        "78": "Limpeza",
+                        "40": "Medicamento"
+                    };
+                    
+                    let tipoBase = "Produto";
+                    for (const prefixo in prefixos) {
+                        if (barcode.startsWith(prefixo)) {
+                            tipoBase = prefixos[prefixo];
+                            break;
+                        }
+                    }
+                    
+                    // Retorna um nome genérico mais descritivo em caso de erro
+                    return `${tipoBase} ${barcode.substring(0, 3)}-${barcode.substring(3, 7)}`;
                 }
             }
         });
