@@ -26,6 +26,9 @@ const ScannerScreen = () => {
   const [expiryDate, setExpiryDate] = useState('');
   const [productCode, setProductCode] = useState('');
   
+  // Modo de escaneamento (código de barras ou data de validade)
+  const [scanMode, setScanMode] = useState(null); // 'barcode' ou 'date'
+  
   // Date recognition states
   const [dateCapturing, setDateCapturing] = useState(false);
   const [dateProcessing, setDateProcessing] = useState(false);
@@ -96,6 +99,29 @@ const ScannerScreen = () => {
   // Toggle camera flash
   const toggleFlash = () => {
     setFlash(flash === 'off' ? 'on' : 'off');
+  };
+
+  // Escolher modo de escaneamento
+  const selectScanMode = (mode) => {
+    setScanMode(mode);
+    if (mode === 'date') {
+      startDateCapture();
+    } else {
+      // Barcode mode
+      setScanned(false);
+    }
+  };
+
+  // Reset to initial mode selection
+  const resetToModeSelection = () => {
+    setScanMode(null);
+    setScanned(false);
+    setProductName('');
+    setProductCode('');
+    setExpiryDate('');
+    setDateCapturing(false);
+    setSelectedDate(null);
+    setCapturedImage(null);
   };
 
   // Start capturing date mode
@@ -413,40 +439,6 @@ const ScannerScreen = () => {
     setExpiryDate(date.date);
   };
 
-  // Reset scanner to scan again
-  const resetScanner = () => {
-    setScanned(false);
-  };
-
-  // If permission is being requested
-  if (hasPermission === null) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text>Solicitando permissão da câmera...</Text>
-        <ActivityIndicator size="large" color="#2196f3" style={{marginTop: 20}} />
-      </View>
-    );
-  }
-
-  // If permission was denied
-  if (hasPermission === false) {
-    return (
-      <View style={styles.permissionContainer}>
-        <Text style={styles.permissionText}>Sem acesso à câmera</Text>
-        <Text style={styles.permissionSubText}>
-          Este aplicativo precisa de acesso à câmera para escanear códigos de barras e datas de validade.
-        </Text>
-        <Button 
-          mode="contained" 
-          onPress={requestPermission}
-          style={{marginTop: 20}}
-        >
-          Solicitar Permissão
-        </Button>
-      </View>
-    );
-  }
-
   // Date capture modal
   const renderDateCaptureModal = () => (
     <Modal
@@ -616,7 +608,30 @@ const ScannerScreen = () => {
 
   return (
     <View style={styles.container}>
-      {!scanned ? (
+      {scanMode === null ? (
+        // Mode selection screen
+        <View style={styles.modeSelectionContainer}>
+          <Text style={styles.modeSelectionTitle}>O que você deseja escanear?</Text>
+          
+          <View style={styles.modeButtonsContainer}>
+            <TouchableOpacity 
+              style={styles.modeButton}
+              onPress={() => selectScanMode('barcode')}
+            >
+              <IconButton icon="barcode-scan" size={40} color="#2196f3" />
+              <Text style={styles.modeButtonText}>Código de Barras</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.modeButton}
+              onPress={() => selectScanMode('date')}
+            >
+              <IconButton icon="calendar-text" size={40} color="#4CAF50" />
+              <Text style={styles.modeButtonText}>Data de Validade</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : scanMode === 'barcode' && !scanned ? (
         // Scanner view
         <View style={styles.scannerContainer}>
           <BarCodeScanner
@@ -633,8 +648,15 @@ const ScannerScreen = () => {
               Aponte para um código de barras
             </Text>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={resetToModeSelection}
+          >
+            <IconButton icon="arrow-left" size={24} color="white" />
+          </TouchableOpacity>
         </View>
-      ) : (
+      ) : scanMode === 'barcode' && scanned ? (
         // Form view after scan
         <ScrollView style={styles.formContainer} contentContainerStyle={styles.formContent}>
           <Text style={styles.formTitle}>Informações do Produto</Text>
@@ -683,13 +705,13 @@ const ScannerScreen = () => {
           
           <Button
             mode="outlined"
-            onPress={resetScanner}
+            onPress={resetToModeSelection}
             style={styles.resetButton}
           >
-            Escanear Novamente
+            Voltar ao Início
           </Button>
         </ScrollView>
-      )}
+      ) : null}
       
       {renderDateCaptureModal()}
     </View>
@@ -964,6 +986,52 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginBottom: 10,
+  },
+  
+  // Mode selection styles
+  modeSelectionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modeSelectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    textAlign: 'center',
+  },
+  modeButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  modeButton: {
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+    borderRadius: 10,
+    width: '45%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modeButtonText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
   },
 });
 
