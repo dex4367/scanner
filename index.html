@@ -535,24 +535,8 @@
                 document.getElementById('camera-permission-error').classList.add('hidden');
                 permissionDenied = false; // Permissão concedida com sucesso
                 
-                // Verificar recursos disponíveis e ajustar a interface
-                html5QrCode.getRunningTrackCapabilities()
-                    .then(capabilities => {
-                        console.log("Capacidades da câmera:", capabilities);
-                        if (capabilities.torch) {
-                            document.getElementById('flash-btn').style.display = 'block';
-                        }
-                        
-                        // Ajustar as configurações de foco e zoom se disponíveis
-                        if (capabilities.focusMode) {
-                            html5QrCode.applyVideoConstraints({
-                                advanced: [{
-                                    focusMode: "continuous"
-                                }]
-                            });
-                        }
-                    })
-                    .catch(err => console.error("Error checking camera capabilities:", err));
+                // Mostrar botão de flash como disponível (não verificamos mais as capabilities)
+                document.getElementById('flash-btn').style.display = 'block';
             })
             .catch(err => {
                 console.error("Erro ao iniciar o scanner:", err);
@@ -573,17 +557,25 @@
             const flashBtn = document.getElementById('flash-btn');
             isFlashOn = !isFlashOn;
             
-            html5QrCode.applyVideoConstraints({
-                advanced: [{ torch: isFlashOn }]
-            }).then(() => {
-                if (isFlashOn) {
-                    flashBtn.innerHTML = '<span class="material-icons">flash_off</span>&nbsp;Desligar Flash';
-                    flashBtn.style.backgroundColor = '#4CAF50';
-                } else {
-                    flashBtn.innerHTML = '<span class="material-icons">flash_on</span>&nbsp;Ligar Flash';
-                    flashBtn.style.backgroundColor = '#f44336';
-                }
-            });
+            try {
+                html5QrCode.applyVideoConstraints({
+                    advanced: [{ torch: isFlashOn }]
+                }).then(() => {
+                    if (isFlashOn) {
+                        flashBtn.innerHTML = '<span class="material-icons">flash_off</span>&nbsp;Desligar Flash';
+                        flashBtn.style.backgroundColor = '#4CAF50';
+                    } else {
+                        flashBtn.innerHTML = '<span class="material-icons">flash_on</span>&nbsp;Ligar Flash';
+                        flashBtn.style.backgroundColor = '#f44336';
+                    }
+                }).catch(err => {
+                    console.error("Erro ao toggleFlash:", err);
+                    // Lidar silenciosamente com o erro
+                    isFlashOn = !isFlashOn; // reverter o estado
+                });
+            } catch (err) {
+                console.error("Erro ao tentar acessar flash:", err);
+            }
         }
         
         function onScanSuccess(decodedText) {
@@ -767,29 +759,28 @@
             
             document.getElementById('scanner-status').innerText = "Capturando imagem...";
             
-            // Parar o scanner para tirar uma foto única
-            html5QrCode.pause().then(() => {
-                // Obter o frame atual como uma imagem
-                html5QrCode.getRunningTrackSettings()
-                    .then(settings => {
-                        // Tentar escanear o frame atual
-                        html5QrCode.scanFrame()
-                            .then(result => {
-                                // Se encontrou um código
-                                onScanSuccess(result);
-                            })
-                            .catch(error => {
-                                // Se não encontrou, continuar o scanner
-                                document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem. Tentando novamente...";
-                                html5QrCode.resume();
-                            });
-                    })
-                    .catch(err => {
-                        console.error("Erro ao capturar frame:", err);
-                        document.getElementById('scanner-status').innerText = "Erro ao capturar imagem. Tentando novamente...";
-                        html5QrCode.resume();
-                    });
-            });
+            try {
+                // Tentar capturar a imagem atual
+                html5QrCode.pause().then(() => {
+                    // Simplificamos aqui para não usar o getRunningTrackSettings
+                    html5QrCode.scanFrame()
+                        .then(result => {
+                            // Se encontrou um código
+                            onScanSuccess(result);
+                        })
+                        .catch(error => {
+                            // Se não encontrou, continuar o scanner
+                            document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem. Tentando novamente...";
+                            html5QrCode.resume();
+                        });
+                }).catch(err => {
+                    console.error("Erro ao pausar scanner:", err);
+                    document.getElementById('scanner-status').innerText = "Erro ao capturar imagem.";
+                });
+            } catch (err) {
+                console.error("Erro ao tentar capturar imagem:", err);
+                document.getElementById('scanner-status').innerText = "Erro ao capturar imagem.";
+            }
         }
         
         // Processar arquivo de imagem selecionado
