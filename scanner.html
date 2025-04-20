@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * 'self' blob:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * blob: 'self' https: data:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#00843D">
     <title>BR Mania - Scanner de Produtos</title>
@@ -423,10 +423,21 @@
                 }
                 
                 // Alternativa: importar biblioteca zxing-js para detecção
+                // Usar versão que não depende de web workers em blob
                 const script = document.createElement('script');
-                script.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+                script.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.js';
                 script.onload = function() {
-                    startZXingDetection();
+                    try {
+                        // Tentar desabilitar o uso de web workers
+                        if (typeof ZXing !== 'undefined' && ZXing.BrowserMultiFormatReader) {
+                            startZXingDetection();
+                        } else {
+                            scannerStatus.textContent = "Erro ao carregar biblioteca de detecção";
+                        }
+                    } catch (e) {
+                        console.error('Erro ao inicializar ZXing:', e);
+                        scannerStatus.textContent = "Erro ao inicializar leitor. Use entrada manual.";
+                    }
                 };
                 script.onerror = function() {
                     scannerStatus.textContent = "Não foi possível carregar o detector de código de barras";
