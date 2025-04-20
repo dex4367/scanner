@@ -2,11 +2,18 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#2196f3">
     <title>Scanner de Produtos</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <!-- TensorFlow.js para reconhecimento avançado -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -194,21 +201,83 @@
             margin-bottom: 8px;
         }
         
-        #expiry-capture-btn {
-            background-color: #009688;
-            color: white;
-            margin-top: 10px;
+        #expiry-capture-container {
+            position: relative;
+            margin-top: 15px;
         }
         
-        #expiry-preview {
-            width: 100%;
-            height: 200px;
+        #expiry-guide-box {
+            position: absolute;
+            width: 80%;
+            height: 100px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px dashed #009688;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 15;
+            background-color: rgba(0,150,136,0.1);
+        }
+        
+        #expiry-guide-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #009688;
+            background-color: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        #capture-expiry-btn {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 15;
+        }
+        
+        #detected-dates {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+        }
+        
+        .date-option {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .date-option:hover {
             background-color: #f5f5f5;
-            border: 1px dashed #ccc;
-            margin: 10px 0;
-            text-align: center;
-            line-height: 200px;
-            display: none;
+        }
+        
+        .date-option.selected {
+            background-color: #e3f2fd;
+            border-color: #2196f3;
         }
         
         .recognition-status {
@@ -308,12 +377,23 @@
                     <div class="form-group">
                         <label for="expiry-date">Data de Validade</label>
                         <input type="date" id="expiry-date">
-                        <button id="expiry-capture-btn" class="button" onclick="captureExpiryDate()">
+                        <button id="expiry-capture-btn" class="button" onclick="showExpiryCapture()">
                             <span class="material-icons">date_range</span>&nbsp;
                             Capturar Data de Validade
                         </button>
                     </div>
-                    <div id="expiry-preview"></div>
+                    <div id="expiry-capture-container" style="display: none;">
+                        <div id="expiry-preview" style="width: 100%; height: 300px; position: relative;">
+                            <div id="expiry-camera-feed"></div>
+                            <div id="expiry-guide-box">
+                                <div id="expiry-guide-text">Alinhe a data de validade aqui</div>
+                            </div>
+                            <button id="capture-expiry-btn" onclick="captureExpiryImage()">
+                                <span class="material-icons">photo_camera</span>
+                            </button>
+                        </div>
+                        <div id="detected-dates" style="display: none;"></div>
+                    </div>
                     <div id="recognition-status" class="recognition-status" style="display: none;">
                         Processando imagem...
                     </div>
@@ -868,279 +948,484 @@
             initScanner();
         }
         
-        // Adicionar função para capturar a data de validade
-        function captureExpiryDate() {
-            if (!html5QrCode) {
-                alert('É necessário iniciar a câmera primeiro');
+        // Sistema avançado de captura de data de validade
+        let expiryVideoStream = null;
+        let expiryVideoElement = null;
+        let tfModel = null;
+        
+        // Inicializar reconhecedor avançado
+        async function initTensorFlow() {
+            try {
+                if (!tfModel) {
+                    document.getElementById('recognition-status').style.display = 'block';
+                    document.getElementById('recognition-status').innerText = 'Carregando modelo de reconhecimento...';
+                    // Podemos usar MobileNet como feature extractor para texto
+                    tfModel = await mobilenet.load();
+                    document.getElementById('recognition-status').innerText = 'Modelo carregado com sucesso!';
+                    setTimeout(() => {
+                        document.getElementById('recognition-status').style.display = 'none';
+                    }, 1500);
+                }
+                return true;
+            } catch (err) {
+                console.error('Erro ao carregar modelo TensorFlow:', err);
+                document.getElementById('recognition-status').innerText = 'Erro ao carregar modelo. Usando método alternativo.';
+                return false;
+            }
+        }
+        
+        // Mostrar a captura de data de validade
+        async function showExpiryCapture() {
+            // Inicializar TensorFlow (em paralelo)
+            initTensorFlow();
+            
+            // Mostrar o container de captura
+            document.getElementById('expiry-capture-container').style.display = 'block';
+            document.getElementById('recognition-status').style.display = 'block';
+            document.getElementById('recognition-status').innerText = 'Inicializando câmera...';
+            
+            try {
+                // Acessar a câmera
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                // Criar o elemento de vídeo se não existir
+                if (!expiryVideoElement) {
+                    expiryVideoElement = document.createElement('video');
+                    expiryVideoElement.autoplay = true;
+                    expiryVideoElement.playsinline = true;
+                    expiryVideoElement.style.width = '100%';
+                    expiryVideoElement.style.height = '100%';
+                    expiryVideoElement.style.objectFit = 'cover';
+                    
+                    const container = document.getElementById('expiry-camera-feed');
+                    container.innerHTML = '';
+                    container.appendChild(expiryVideoElement);
+                }
+                
+                // Conectar o stream ao vídeo
+                expiryVideoElement.srcObject = stream;
+                expiryVideoStream = stream;
+                
+                document.getElementById('recognition-status').innerText = 'Câmera ativa! Alinhe a data no retângulo verde.';
+            } catch (err) {
+                console.error('Erro ao acessar câmera para validade:', err);
+                document.getElementById('recognition-status').innerText = 'Erro ao acessar câmera. Use o método de upload.';
+                
+                // Adicionar botão para upload alternativo
+                const uploadBtn = document.createElement('button');
+                uploadBtn.className = 'button';
+                uploadBtn.innerHTML = '<span class="material-icons">upload</span>&nbsp;Fazer upload de imagem';
+                uploadBtn.onclick = () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.onchange = (e) => {
+                        if (e.target.files.length > 0) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const img = new Image();
+                                img.onload = () => processExpiryImage(img);
+                                img.src = event.target.result;
+                            };
+                            reader.readAsDataURL(e.target.files[0]);
+                        }
+                    };
+                    input.click();
+                };
+                document.getElementById('expiry-capture-container').appendChild(uploadBtn);
+            }
+        }
+        
+        // Capturar a imagem da data de validade
+        function captureExpiryImage() {
+            if (!expiryVideoElement) {
+                document.getElementById('recognition-status').innerText = 'Câmera não inicializada!';
                 return;
             }
             
             document.getElementById('recognition-status').style.display = 'block';
-            document.getElementById('recognition-status').innerText = 'Preparando câmera...';
+            document.getElementById('recognition-status').innerText = 'Processando imagem...';
             
-            // Reiniciar a câmera se já tiver sido parada
-            if (!html5QrCode._isScanning) {
-                try {
-                    initScanner();
-                    setTimeout(() => {
-                        captureAndRecognizeDate();
-                    }, 1500);
-                } catch (err) {
-                    console.error('Erro ao reiniciar câmera:', err);
-                    document.getElementById('recognition-status').innerText = 'Erro ao acessar câmera';
-                }
-            } else {
-                captureAndRecognizeDate();
+            // Criar canvas para capturar a imagem
+            const canvas = document.createElement('canvas');
+            const width = expiryVideoElement.videoWidth;
+            const height = expiryVideoElement.videoHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Desenhar o quadro de vídeo atual
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(expiryVideoElement, 0, 0, width, height);
+            
+            // Criar uma imagem para processamento
+            const img = new Image();
+            img.onload = () => processExpiryImage(img);
+            img.src = canvas.toDataURL('image/jpeg');
+            
+            // Parar a câmera
+            if (expiryVideoStream) {
+                expiryVideoStream.getTracks().forEach(track => track.stop());
+                expiryVideoStream = null;
             }
         }
         
-        function captureAndRecognizeDate() {
-            document.getElementById('recognition-status').innerText = 'Capturando imagem...';
+        // Processar a imagem da data de validade usando múltiplos métodos
+        async function processExpiryImage(imgElement) {
+            document.getElementById('recognition-status').innerText = 'Analisando imagem para datas...';
             
+            // Exibir a imagem no preview
+            const previewElement = document.getElementById('expiry-preview');
+            previewElement.innerHTML = '';
+            previewElement.appendChild(imgElement);
+            imgElement.style.width = '100%';
+            imgElement.style.height = '100%';
+            imgElement.style.objectFit = 'contain';
+            
+            // Esconder o guia e o botão de captura
+            document.getElementById('expiry-guide-box').style.display = 'none';
+            document.getElementById('capture-expiry-btn').style.display = 'none';
+            
+            // Extrair o texto usando múltiplos métodos
+            const results = await Promise.all([
+                // 1. Método Google Vision API (se ativado)
+                extractTextWithGoogleVision(imgElement),
+                
+                // 2. Método Tesseract.js (alternativa local)
+                extractTextWithTesseract(imgElement),
+                
+                // 3. Método TensorFlow (experimental)
+                extractTextWithTensorFlow(imgElement)
+            ]);
+            
+            // Consolidar resultados e encontrar datas
+            const allText = results.filter(r => r).join(' ');
+            console.log('Texto extraído combinado:', allText);
+            
+            // Analisar o texto para encontrar datas
+            const dates = findDatesInText(allText);
+            
+            if (dates && dates.length > 0) {
+                // Mostrar opções de datas detectadas
+                displayDateOptions(dates);
+            } else {
+                document.getElementById('recognition-status').innerText = 'Nenhuma data encontrada. Tente novamente ou insira manualmente.';
+            }
+        }
+        
+        // Extração de texto com Google Vision API
+        async function extractTextWithGoogleVision(imgElement) {
             try {
-                // Usar o elemento de vídeo diretamente para capturar a imagem
-                const videoElement = document.querySelector('#reader video');
-                
-                if (!videoElement) {
-                    document.getElementById('recognition-status').innerText = 'Câmera não encontrada';
-                    return;
-                }
-                
-                // Criar um canvas para capturar o frame de vídeo
+                // Converter a imagem para base64
                 const canvas = document.createElement('canvas');
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
+                canvas.width = imgElement.width || imgElement.naturalWidth;
+                canvas.height = imgElement.height || imgElement.naturalHeight;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                
-                // Mostrar a imagem capturada no preview
-                const previewElement = document.getElementById('expiry-preview');
-                previewElement.style.display = 'block';
-                previewElement.innerHTML = '';
-                previewElement.appendChild(canvas);
-                
-                // Converter para imagem base64
+                ctx.drawImage(imgElement, 0, 0);
                 const imageData = canvas.toDataURL('image/jpeg').split(',')[1];
                 
-                document.getElementById('recognition-status').innerText = 'Enviando imagem para análise...';
-                
-                // Usar a API Vision do Google para reconhecer texto
+                // Usar a API Vision
                 const apiKey = 'AIzaSyAYt1_zc-_MrJpm60WnOIwVDxAd1eAsDiY';
                 const apiUrl = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
                 
-                // Preparar a requisição para a API
+                // Preparar a requisição
                 const requestData = {
-                    requests: [
-                        {
-                            image: {
-                                content: imageData
-                            },
-                            features: [
-                                {
-                                    type: "TEXT_DETECTION",
-                                    maxResults: 10
-                                }
-                            ],
-                            imageContext: {
-                                languageHints: ["pt-BR", "en"]
-                            }
-                        }
-                    ]
+                    requests: [{
+                        image: { content: imageData },
+                        features: [{ type: "TEXT_DETECTION", maxResults: 10 }],
+                        imageContext: { languageHints: ["pt-BR", "en"] }
+                    }]
                 };
                 
-                // Enviar a requisição para a API do Google
-                fetch(apiUrl, {
+                // Enviar a requisição
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     body: JSON.stringify(requestData),
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(result => {
-                    console.log('API Vision resultado:', result);
-                    
-                    if (result.responses && result.responses[0] && result.responses[0].textAnnotations) {
-                        // Obter o texto completo detectado
-                        const detectedText = result.responses[0].textAnnotations[0].description;
-                        console.log('Texto detectado:', detectedText);
-                        
-                        document.getElementById('recognition-status').innerText = 'Texto reconhecido. Procurando datas...';
-                        
-                        // Limpar o texto para melhorar o reconhecimento
-                        const cleanText = detectedText
-                            .replace(/\n/g, ' ')           // Remover quebras de linha
-                            .replace(/\s+/g, ' ')          // Remover espaços em excesso
-                            .replace(/[Oo]/g, '0')         // Substituir O por 0
-                            .replace(/[lI]/g, '1')         // Substituir l/I por 1
-                            .trim();
-                        
-                        console.log('Texto limpo:', cleanText);
-                        
-                        // Procurar datas em vários formatos
-                        const datePatterns = [
-                            // Formatos explicitamente com "validade"
-                            /VAL(?:ID)?(?:ADE)?[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            /VENC(?:IMENTO)?[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            
-                            // Formatos de data com texto antes ou depois
-                            /(?:DATA|FABRICADO)[:.]*\s*(?:EM)?\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            /(?:CONSUMIR|CONSUMO)[:.]*\s*(?:ATÉ|ANTES)?\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            
-                            // Formatos de "melhor antes de"
-                            /MELHOR\s*(?:ANTES|ANTES DE)\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            
-                            // Formato comum: "VAL: DD MMM AAAA" (ex: VAL: 01 JAN 2023)
-                            /VAL(?:ID)?(?:ADE)?[:.]*\s*(\d{2})\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*(\d{2,4})/i,
-                            
-                            // Formato comum: "Valido ate: DD/MM/AAAA"
-                            /V[ÁA]LID[OA]\s*(?:AT[ÉE]|HASTA)[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
-                            
-                            // Formato de data com traços
-                            /(\d{2})[\/\.\-](\d{2})[\/\.\-](\d{2,4})/,
-                            
-                            // Formato usado em alguns produtos: DD.MM.AAAA
-                            /(\d{2})\.(\d{2})\.(\d{2,4})/
-                        ];
-                        
-                        let foundDate = null;
-                        let matchInfo = null;
-                        
-                        // Tentar encontrar uma data usando os padrões
-                        for (const pattern of datePatterns) {
-                            const match = cleanText.match(pattern);
-                            if (match) {
-                                if (match.length === 2) {
-                                    // Formato simples: data completa no primeiro grupo
-                                    foundDate = match[1];
-                                    break;
-                                } else if (match.length === 4 && /JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ/i.test(match[2])) {
-                                    // Formato com mês em texto: Dia, Mês(texto), Ano
-                                    const day = match[1];
-                                    const monthText = match[2].toUpperCase();
-                                    const year = match[3];
-                                    
-                                    // Converter mês em texto para número
-                                    const monthMap = {
-                                        'JAN': '01', 'FEV': '02', 'MAR': '03', 'ABR': '04',
-                                        'MAI': '05', 'JUN': '06', 'JUL': '07', 'AGO': '08',
-                                        'SET': '09', 'OUT': '10', 'NOV': '11', 'DEZ': '12'
-                                    };
-                                    
-                                    foundDate = `${day}/${monthMap[monthText]}/${year}`;
-                                    break;
-                                } else if (match.length === 4) {
-                                    // Formato com grupos separados: dia, mês, ano
-                                    foundDate = `${match[1]}/${match[2]}/${match[3]}`;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (foundDate) {
-                            document.getElementById('recognition-status').innerText = `Data encontrada: ${foundDate}`;
-                            
-                            try {
-                                // Tentar identificar o formato da data
-                                const separators = /[\/\.\-]/;
-                                const parts = foundDate.split(separators);
-                                
-                                if (parts.length === 3) {
-                                    let day, month, year;
-                                    
-                                    // Verificar o formato mais provável
-                                    if (parseInt(parts[0]) <= 31 && parseInt(parts[1]) <= 12) {
-                                        // Provavelmente DD/MM/YYYY
-                                        day = parts[0];
-                                        month = parts[1];
-                                        year = parts[2];
-                                    } else if (parseInt(parts[1]) <= 31 && parseInt(parts[0]) <= 12) {
-                                        // Provavelmente MM/DD/YYYY (formato americano)
-                                        month = parts[0];
-                                        day = parts[1];
-                                        year = parts[2];
-                                    } else {
-                                        // Tentar o formato mais comum: DD/MM/YYYY
-                                        day = parts[0];
-                                        month = parts[1];
-                                        year = parts[2];
-                                    }
-                                    
-                                    // Ajustar o ano se necessário
-                                    if (year.length === 2) {
-                                        // Adicionar 20 para anos com 2 dígitos (assumindo anos 2000+)
-                                        if (parseInt(year) >= 0 && parseInt(year) <= 30) {
-                                            year = '20' + year;
-                                        } else {
-                                            year = '19' + year;
-                                        }
-                                    }
-                                    
-                                    // Garantir que dia e mês tenham dois dígitos
-                                    day = day.padStart(2, '0');
-                                    month = month.padStart(2, '0');
-                                    
-                                    // Criar data para validação
-                                    const dateObj = new Date(`${year}-${month}-${day}`);
-                                    
-                                    // Verificar se a data é válida
-                                    if (!isNaN(dateObj.getTime())) {
-                                        const formattedDate = `${year}-${month}-${day}`;
-                                        document.getElementById('expiry-date').value = formattedDate;
-                                        document.getElementById('recognition-status').innerText = `Data encontrada e validada: ${day}/${month}/${year}`;
-                                    } else {
-                                        document.getElementById('recognition-status').innerText = `Data encontrada, mas inválida: ${foundDate}. Insira manualmente.`;
-                                    }
-                                }
-                            } catch (err) {
-                                console.error('Erro ao processar data:', err, foundDate);
-                                document.getElementById('recognition-status').innerText = `Formato de data não reconhecido: ${foundDate}. Insira manualmente.`;
-                            }
-                        } else {
-                            document.getElementById('recognition-status').innerText = 'Nenhuma data encontrada. Tente novamente ou insira manualmente.';
-                        }
-                    } else {
-                        document.getElementById('recognition-status').innerText = 'Nenhum texto encontrado na imagem.';
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro ao chamar a API:', error);
-                    document.getElementById('recognition-status').innerText = 'Erro na API de reconhecimento. Usando método alternativo...';
-                    
-                    // Fallback para Tesseract se a API do Google falhar
-                    useTesseractFallback(imageData);
+                    headers: { 'Content-Type': 'application/json' }
                 });
+                
+                const result = await response.json();
+                
+                if (result.responses && result.responses[0] && result.responses[0].textAnnotations) {
+                    return result.responses[0].textAnnotations[0].description;
+                }
+                return '';
             } catch (err) {
-                console.error('Erro ao capturar imagem:', err);
-                document.getElementById('recognition-status').innerText = 'Erro ao capturar imagem';
+                console.error('Erro no Google Vision:', err);
+                return '';
             }
         }
         
-        // Função de fallback para usar Tesseract caso a API do Google falhe
-        function useTesseractFallback(imageData) {
-            document.getElementById('recognition-status').innerText = 'Reconhecendo texto com método alternativo...';
+        // Extração de texto com Tesseract.js
+        async function extractTextWithTesseract(imgElement) {
+            try {
+                document.getElementById('recognition-status').innerText = 'Reconhecendo texto...';
+                
+                const result = await Tesseract.recognize(
+                    imgElement,
+                    'por+eng', // Português + Inglês
+                    { 
+                        logger: message => {
+                            if (message.status === 'recognizing text') {
+                                document.getElementById('recognition-status').innerText = 
+                                    `Processando: ${Math.floor(message.progress * 100)}%`;
+                            }
+                        }
+                    }
+                );
+                
+                return result.data.text;
+            } catch (err) {
+                console.error('Erro no Tesseract:', err);
+                return '';
+            }
+        }
+        
+        // Extração de texto com TensorFlow (experimental)
+        async function extractTextWithTensorFlow(imgElement) {
+            try {
+                if (!tfModel) {
+                    console.log('Modelo TensorFlow não carregado');
+                    return '';
+                }
+                
+                // TensorFlow.js não é otimizado para OCR, mas podemos usar para análise de imagem
+                // Este é um placeholder para uma implementação mais avançada
+                const predictions = await tfModel.classify(imgElement);
+                console.log('Análise de imagem TensorFlow:', predictions);
+                
+                // Como não estamos fazendo OCR real com TensorFlow, retornamos vazio
+                return '';
+            } catch (err) {
+                console.error('Erro no TensorFlow:', err);
+                return '';
+            }
+        }
+        
+        // Melhorado: Encontrar datas em texto
+        function findDatesInText(text) {
+            // Normalizar o texto
+            const normalizedText = text
+                .replace(/\n/g, ' ')           // Remover quebras de linha
+                .replace(/\s+/g, ' ')          // Remover espaços em excesso
+                .replace(/[Oo]/g, '0')         // Substituir O por 0
+                .replace(/[lI]/g, '1')         // Substituir l/I por 1
+                .replace(/[Ss]/g, '5')         // Substituir S por 5
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remover acentos
+                .trim();
             
-            Tesseract.recognize(
-                `data:image/jpeg;base64,${imageData}`,
-                'por', // Português
+            console.log('Texto normalizado para busca de datas:', normalizedText);
+            
+            // Array para armazenar datas encontradas
+            const foundDates = [];
+            
+            // Padrões melhorados para datas brasileiras
+            const datePatterns = [
+                // Palavras-chave de validade seguidas de data
                 { 
-                    logger: message => {
-                        if (message.status === 'recognizing text') {
-                            document.getElementById('recognition-status').innerText = 
-                                `Reconhecendo texto: ${Math.floor(message.progress * 100)}%`;
+                    regex: /(?:VAL|VALID|VALIDADE|VENC|VENCIMENTO|DATA\s+VAL)[^\d]*(\d{2})[\.\/-](\d{2})[\.\/-](\d{2,4})/gi,
+                    groups: [1, 2, 3], format: 'DMY'
+                },
+                { 
+                    regex: /(?:CONSUMIR\s+ATE|CONSUMO\s+PREFERENTE|MELHOR\s+ANTES)[^\d]*(\d{2})[\.\/-](\d{2})[\.\/-](\d{2,4})/gi,
+                    groups: [1, 2, 3], format: 'DMY'
+                },
+                // Data com mês em texto
+                { 
+                    regex: /(\d{2})\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[^\d]*(\d{2,4})/gi,
+                    groups: [1, 2, 3], format: 'DtextY'
+                },
+                // Validade/Vencimento seguido de data com mês em texto
+                { 
+                    regex: /(?:VAL|VALID|VALIDADE|VENC|VENCIMENTO)[^\d]*(\d{2})\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)[^\d]*(\d{2,4})/gi,
+                    groups: [1, 2, 3], format: 'DtextY'
+                },
+                // Data no formato DD.MM.AAAA ou DD/MM/AAAA ou DD-MM-AAAA
+                { 
+                    regex: /(\d{2})[\.\/-](\d{2})[\.\/-](\d{2,4})/g,
+                    groups: [1, 2, 3], format: 'DMY'
+                },
+                // Data no formato AAAA.MM.DD ou AAAA/MM/DD ou AAAA-MM-DD
+                { 
+                    regex: /(\d{4})[\.\/-](\d{2})[\.\/-](\d{2})/g,
+                    groups: [1, 2, 3], format: 'YMD'
+                },
+                // Datas apenas com dia e mês (assumir ano corrente)
+                { 
+                    regex: /(\d{2})[\.\/-](\d{2})/g,
+                    groups: [1, 2], format: 'DM'
+                },
+                // Formatos especiais: DD MMM YY
+                { 
+                    regex: /(\d{2})\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*(\d{2})/gi,
+                    groups: [1, 2, 3], format: 'DtextY'
+                }
+            ];
+            
+            // Verificar cada padrão
+            for (const pattern of datePatterns) {
+                let match;
+                while ((match = pattern.regex.exec(normalizedText)) !== null) {
+                    const extractedGroups = pattern.groups.map(g => match[g]);
+                    let day, month, year;
+                    
+                    // Processar baseado no formato
+                    if (pattern.format === 'DMY') {
+                        [day, month, year] = extractedGroups;
+                    } else if (pattern.format === 'YMD') {
+                        [year, month, day] = extractedGroups;
+                    } else if (pattern.format === 'DM') {
+                        [day, month] = extractedGroups;
+                        year = new Date().getFullYear().toString();
+                    } else if (pattern.format === 'DtextY') {
+                        day = extractedGroups[0];
+                        const monthText = extractedGroups[1].toUpperCase();
+                        year = extractedGroups[2];
+                        
+                        const monthMap = {
+                            'JAN': '01', 'FEV': '02', 'MAR': '03', 'ABR': '04',
+                            'MAI': '05', 'JUN': '06', 'JUL': '07', 'AGO': '08',
+                            'SET': '09', 'OUT': '10', 'NOV': '11', 'DEZ': '12'
+                        };
+                        
+                        month = monthMap[monthText] || '01';
+                    }
+                    
+                    // Normalizar o ano
+                    if (year && year.length === 2) {
+                        const twoDigitYear = parseInt(year);
+                        if (twoDigitYear >= 0 && twoDigitYear <= 30) {
+                            year = '20' + year;
+                        } else {
+                            year = '19' + year;
+                        }
+                    }
+                    
+                    // Garantir dia e mês com dois dígitos
+                    day = day.padStart(2, '0');
+                    month = month.padStart(2, '0');
+                    
+                    // Validar a data (descartar datas absurdas)
+                    if (parseInt(day) > 0 && parseInt(day) <= 31 && 
+                        parseInt(month) > 0 && parseInt(month) <= 12) {
+                        
+                        // Criar objeto de data para validação adicional
+                        const dateObj = new Date(`${year}-${month}-${day}`);
+                        
+                        if (!isNaN(dateObj.getTime())) {
+                            // Formatar a data
+                            const formattedDate = `${year}-${month}-${day}`;
+                            const displayDate = `${day}/${month}/${year}`;
+                            
+                            // Adicionar à lista se já não existir
+                            if (!foundDates.some(d => d.date === formattedDate)) {
+                                foundDates.push({
+                                    date: formattedDate,
+                                    display: displayDate,
+                                    context: match[0],
+                                    confidence: pattern.format.includes('text') ? 0.9 : 0.8 // Confiança baseada no formato
+                                });
+                            }
                         }
                     }
                 }
-            ).then(({ data: { text } }) => {
-                console.log('Texto reconhecido (Tesseract):', text);
-                // O resto do processamento permanece o mesmo
-                // [Código de processamento da data removido por brevidade]
-                document.getElementById('recognition-status').innerText = 'Texto reconhecido com método alternativo.';
-            }).catch(err => {
-                console.error('Erro no reconhecimento de texto (Tesseract):', err);
-                document.getElementById('recognition-status').innerText = 'Falha no reconhecimento. Tente novamente.';
+            }
+            
+            // Ordenar por confiança e recência
+            foundDates.sort((a, b) => {
+                // Primeiro por confiança
+                if (b.confidence !== a.confidence) {
+                    return b.confidence - a.confidence;
+                }
+                // Depois por data (mais recente primeiro)
+                return new Date(b.date) - new Date(a.date);
             });
+            
+            return foundDates;
         }
+        
+        // Mostrar opções de datas encontradas
+        function displayDateOptions(dates) {
+            const container = document.getElementById('detected-dates');
+            container.style.display = 'block';
+            container.innerHTML = '<h3>Datas Encontradas:</h3>';
+            
+            dates.forEach((dateInfo, index) => {
+                const option = document.createElement('div');
+                option.className = 'date-option';
+                option.innerHTML = `
+                    <input type="radio" name="date-option" id="date-${index}" ${index === 0 ? 'checked' : ''}>
+                    <label for="date-${index}" style="margin-left: 10px;">
+                        <strong>${dateInfo.display}</strong>
+                        <div style="font-size: 12px; color: #666;">${dateInfo.context}</div>
+                    </label>
+                `;
+                
+                option.onclick = () => {
+                    // Marcar esta opção como selecionada
+                    document.querySelectorAll('.date-option').forEach(el => el.classList.remove('selected'));
+                    option.classList.add('selected');
+                    
+                    // Definir a data no campo
+                    document.getElementById('expiry-date').value = dateInfo.date;
+                    
+                    // Atualizar mensagem de status
+                    document.getElementById('recognition-status').innerText = `Data selecionada: ${dateInfo.display}`;
+                };
+                
+                if (index === 0) {
+                    option.classList.add('selected');
+                    document.getElementById('expiry-date').value = dateInfo.date;
+                    document.getElementById('recognition-status').innerText = `Data identificada: ${dateInfo.display}`;
+                }
+                
+                container.appendChild(option);
+            });
+            
+            // Adicionar botão para confirmar
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'button';
+            confirmBtn.style.marginTop = '10px';
+            confirmBtn.innerHTML = '<span class="material-icons">check</span>&nbsp;Confirmar Data';
+            confirmBtn.onclick = () => {
+                document.getElementById('expiry-capture-container').style.display = 'none';
+                document.getElementById('recognition-status').style.display = 'none';
+            };
+            container.appendChild(confirmBtn);
+            
+            // Adicionar botão para voltar 
+            const backBtn = document.createElement('button');
+            backBtn.className = 'button';
+            backBtn.style.marginTop = '10px';
+            backBtn.style.backgroundColor = '#f44336';
+            backBtn.innerHTML = '<span class="material-icons">arrow_back</span>&nbsp;Tentar Novamente';
+            backBtn.onclick = showExpiryCapture;
+            container.appendChild(backBtn);
+        }
+
+        // Solicitar permissão de câmera quando a página carrega
+        document.addEventListener('DOMContentLoaded', function() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function(stream) {
+                        console.log('Permissão de câmera concedida');
+                        // Parar o stream, só precisamos da permissão
+                        stream.getTracks().forEach(track => {
+                            track.stop();
+                        });
+                    })
+                    .catch(function(error) {
+                        console.error('Erro ao solicitar permissão de câmera:', error);
+                    });
+            } else {
+                console.warn('Navegador não suporta getUserMedia');
+            }
+        });
     </script>
 </body>
 </html> 
