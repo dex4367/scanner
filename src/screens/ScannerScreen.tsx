@@ -105,14 +105,17 @@ const ScannerScreen = () => {
   const selectScanMode = (mode) => {
     setScanMode(mode);
     if (mode === 'date') {
-      // Quando selecionar o modo data, iniciar a captura imediatamente
+      // No modo de data, iniciamos diretamente na tela de captura de imagem
+      // com a câmera pronta para fotografar a data, não para escanear código
       setDateCapturing(true);
       setDetectedDates([]);
       setSelectedDate(null);
       setCapturedImage(null);
+      setScanned(false); // Para garantir que o scanner de código de barras não está ativo
     } else {
       // Barcode mode
       setScanned(false);
+      setDateCapturing(false); // Garante que não estamos capturando data
     }
   };
 
@@ -457,7 +460,13 @@ const ScannerScreen = () => {
           <IconButton
             icon="close"
             size={24}
-            onPress={() => setDateCapturing(false)}
+            onPress={() => {
+              setDateCapturing(false);
+              // Se estiver no modo de data e cancela a captura sem um resultado
+              if (scanMode === 'date' && !expiryDate) {
+                resetToModeSelection();
+              }
+            }}
           />
         </View>
         
@@ -479,8 +488,14 @@ const ScannerScreen = () => {
               </View>
             )}
             
+            <View style={styles.dateOverlay}>
+              <Text style={styles.dateOverlayText}>
+                Posicione a DATA DE VALIDADE dentro da área destacada e tire uma foto
+              </Text>
+            </View>
+            
             <View style={styles.guideBox}>
-              <Text style={styles.guideText}>Alinhe a data de validade aqui</Text>
+              <Text style={styles.guideText}>Alinhe a data aqui e tire uma foto</Text>
             </View>
 
             <View style={styles.cameraControls}>
@@ -490,6 +505,7 @@ const ScannerScreen = () => {
               >
                 <IconButton
                   icon={flash === 'on' ? 'flash' : 'flash-off'}
+                  size={24}
                 />
               </TouchableOpacity>
               
@@ -508,6 +524,7 @@ const ScannerScreen = () => {
               >
                 <IconButton
                   icon="image"
+                  size={24}
                 />
               </TouchableOpacity>
             </View>
@@ -618,6 +635,7 @@ const ScannerScreen = () => {
             >
               <IconButton 
                 icon="barcode-scan"
+                size={40}
               />
               <Text style={styles.modeButtonText}>Código de Barras</Text>
             </TouchableOpacity>
@@ -628,6 +646,7 @@ const ScannerScreen = () => {
             >
               <IconButton 
                 icon="calendar-text"
+                size={40}
               />
               <Text style={styles.modeButtonText}>Data de Validade</Text>
             </TouchableOpacity>
@@ -657,6 +676,7 @@ const ScannerScreen = () => {
           >
             <IconButton 
               icon="arrow-left"
+              size={24}
             />
           </TouchableOpacity>
         </View>
@@ -716,37 +736,51 @@ const ScannerScreen = () => {
           </Button>
         </ScrollView>
       ) : scanMode === 'date' ? (
-        // Tela para data de validade - Vai para o modal diretamente
+        // Para o modo de data, vamos mostrar um feedback mais claro
         <View style={styles.dateOnlyContainer}>
-          <Text style={styles.dateOnlyTitle}>Escaneamento de Data de Validade</Text>
-          <Text style={styles.dateOnlySubtitle}>Use a câmera para capturar a data de validade</Text>
-          
-          {expiryDate ? (
+          {!dateCapturing && expiryDate ? (
+            // Mostrar resultado da captura de data
             <View style={styles.dateResultContainer}>
-              <Text style={styles.dateResultLabel}>Data detectada:</Text>
-              <Text style={styles.dateResultValue}>{expiryDate}</Text>
+              <Text style={styles.dateOnlyTitle}>Data Capturada com Sucesso!</Text>
+              <Card style={styles.dateResultCard}>
+                <Card.Content>
+                  <Text style={styles.dateResultLabel}>Data de Validade:</Text>
+                  <Text style={styles.dateResultValue}>{expiryDate}</Text>
+                </Card.Content>
+              </Card>
               
-              <Button
-                mode="contained"
-                onPress={startDateCapture}
-                style={styles.rescanButton}
-                icon="refresh"
-              >
-                Escanear Novamente
-              </Button>
+              <View style={styles.dateButtonsContainer}>
+                <Button
+                  mode="contained"
+                  onPress={startDateCapture}
+                  style={styles.dateActionButton}
+                  icon="refresh"
+                >
+                  Escanear Novamente
+                </Button>
+                
+                <Button
+                  mode="outlined"
+                  onPress={resetToModeSelection}
+                  style={styles.dateActionButton}
+                  icon="home"
+                >
+                  Voltar ao Início
+                </Button>
+              </View>
             </View>
           ) : (
-            <ActivityIndicator size="large" color="#4CAF50" />
+            // Mostrar mensagem enquanto a câmera está sendo preparada
+            <View style={styles.dateLoadingContainer}>
+              <ActivityIndicator size="large" color="#4CAF50" />
+              <Text style={styles.dateLoadingText}>
+                Preparando câmera para captura de data...
+              </Text>
+              <Text style={styles.dateInstructionText}>
+                A tela de câmera será aberta automaticamente.
+              </Text>
+            </View>
           )}
-          
-          <Button
-            mode="outlined"
-            onPress={resetToModeSelection}
-            style={styles.dateBackButton}
-            icon="arrow-left"
-          >
-            Voltar ao Menu
-          </Button>
         </View>
       ) : null}
       
@@ -879,6 +913,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#333',
+  },
+  dateOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  dateOverlayText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   guideBox: {
     position: 'absolute',
@@ -1104,6 +1153,32 @@ const styles = StyleSheet.create({
   },
   dateBackButton: {
     marginTop: 10,
+  },
+  dateResultCard: {
+    marginBottom: 10,
+  },
+  dateButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+  },
+  dateActionButton: {
+    margin: 10,
+  },
+  dateLoadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  dateLoadingText: {
+    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  dateInstructionText: {
+    textAlign: 'center',
+    color: '#666',
   },
 });
 
