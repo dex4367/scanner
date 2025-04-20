@@ -14,16 +14,17 @@
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            overscroll-behavior: none;
         }
         .container {
-            max-width: 600px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
         }
         .header {
             background-color: #00843D;
             color: white;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
@@ -31,11 +32,11 @@
         .header h1 {
             margin: 0;
             padding: 0;
-            font-size: 24px;
+            font-size: 20px;
         }
         .logo {
-            max-width: 180px;
-            margin-bottom: 10px;
+            max-width: 150px;
+            margin-bottom: 5px;
         }
         .back-button {
             position: absolute;
@@ -49,6 +50,8 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            padding: 8px;
+            z-index: 10;
         }
         .button {
             background-color: #00843D;
@@ -64,9 +67,13 @@
             justify-content: center;
             text-decoration: none;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
         }
         .button:hover {
             background-color: #00692f;
+        }
+        .button:active {
+            transform: scale(0.98);
         }
         .button i {
             margin-right: 10px;
@@ -77,7 +84,7 @@
         .card {
             background-color: white;
             border-radius: 8px;
-            padding: 20px;
+            padding: 15px;
             margin: 15px 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -133,7 +140,7 @@
         }
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
+            padding: 30px 20px;
         }
         .empty-state i {
             font-size: 64px;
@@ -151,6 +158,42 @@
         .hidden {
             display: none;
         }
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            .card {
+                padding: 12px;
+                margin: 10px 0;
+            }
+            .report-title {
+                font-size: 16px;
+            }
+            .stat-value {
+                font-size: 18px;
+            }
+            .expiry-item {
+                flex-direction: column;
+            }
+            .expiry-date {
+                margin-top: 4px;
+            }
+        }
+        /* Loading spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #00843D;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -163,39 +206,8 @@
     </div>
 
     <div class="container">
-        <div class="card">
-            <div class="report-section">
-                <div class="report-title">Resumo de Produtos</div>
-                <div class="report-stat">
-                    <i class="material-icons">inventory</i>
-                    <div>
-                        <span class="stat-value" id="total-products">3</span>
-                        <span class="stat-label">Produtos cadastrados</span>
-                    </div>
-                </div>
-                <div class="report-stat">
-                    <i class="material-icons">warning</i>
-                    <div>
-                        <span class="stat-value" id="expiring-products">1</span>
-                        <span class="stat-label">Produtos próximos ao vencimento</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="report-section">
-                <div class="report-title">Produtos com Vencimento Próximo</div>
-                <div class="expiry-list" id="expiry-list">
-                    <!-- Lista de produtos com vencimento próximo -->
-                </div>
-            </div>
-
-            <button class="button" id="generate-pdf">
-                <i class="material-icons">picture_as_pdf</i> Gerar PDF
-            </button>
-            
-            <button class="button sharing" id="share-report">
-                <i class="material-icons">share</i> Compartilhar Relatório
-            </button>
+        <div id="report-container">
+            <div class="loading-spinner" id="loading-spinner"></div>
         </div>
     </div>
 
@@ -208,71 +220,125 @@
         </div>
     </div>
 
-    <style>
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const expiryList = document.getElementById('expiry-list');
-            const generatePdfBtn = document.getElementById('generate-pdf');
-            const shareReportBtn = document.getElementById('share-report');
+            const reportContainer = document.getElementById('report-container');
             const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingSpinner = document.getElementById('loading-spinner');
             
             // Carregar dados para o relatório
             loadReportData();
             
-            generatePdfBtn.addEventListener('click', function() {
-                generatePDF();
-            });
-            
-            shareReportBtn.addEventListener('click', function() {
-                shareReport();
-            });
-            
             function loadReportData() {
-                // Em uma aplicação real, você buscaria do banco de dados
-                // Usando dados mockados para demonstração
-                const mockProducts = [
-                    { id: 1, name: 'Coca-Cola 2L', code: '7894900011517', expiryDate: '2025-12-31' },
-                    { id: 2, name: 'Biscoito Trakinas', code: '7622210985453', expiryDate: '2025-08-15' },
-                    { id: 3, name: 'Chocolate Lacta', code: '7622300991739', expiryDate: '2025-10-20' }
-                ];
-                
-                // Atualizar contadores
-                document.getElementById('total-products').textContent = mockProducts.length;
-                
-                // Filtrar produtos com vencimento nos próximos 3 meses
+                // Simular carregamento
+                setTimeout(() => {
+                    try {
+                        // Obter produtos do localStorage
+                        const storedProducts = localStorage.getItem('products');
+                        const products = storedProducts ? JSON.parse(storedProducts) : [];
+                        
+                        loadingSpinner.classList.add('hidden');
+                        
+                        if (products.length === 0) {
+                            showEmptyState();
+                            return;
+                        }
+                        
+                        // Mostrar relatório
+                        displayReport(products);
+                    } catch (error) {
+                        console.error('Erro ao carregar relatório:', error);
+                        loadingSpinner.classList.add('hidden');
+                        showEmptyState();
+                    }
+                }, 500);
+            }
+            
+            function showEmptyState() {
+                reportContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="material-icons">description</i>
+                        <p>Nenhum produto cadastrado para gerar relatório</p>
+                        <a href="scanner.html" class="button">
+                            <i class="material-icons">add</i> Adicionar Produto
+                        </a>
+                    </div>
+                `;
+            }
+            
+            function displayReport(products) {
+                // Calcular produtos próximos à validade (30 dias)
                 const today = new Date();
-                const threeMonthsLater = new Date();
-                threeMonthsLater.setMonth(today.getMonth() + 3);
+                const thirtyDaysLater = new Date();
+                thirtyDaysLater.setDate(today.getDate() + 30);
                 
-                const expiringProducts = mockProducts.filter(product => {
+                const expiringProducts = products.filter(product => {
                     const expiryDate = new Date(product.expiryDate);
-                    return expiryDate <= threeMonthsLater;
+                    return expiryDate <= thirtyDaysLater;
                 });
                 
-                document.getElementById('expiring-products').textContent = expiringProducts.length;
+                // Ordenar por data de validade
+                products.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
                 
-                // Preencher lista de produtos com vencimento próximo
-                if (expiringProducts.length > 0) {
-                    expiryList.innerHTML = '';
-                    
-                    expiringProducts.forEach(product => {
-                        const expiryItem = document.createElement('div');
-                        expiryItem.className = 'expiry-item';
-                        expiryItem.innerHTML = `
+                // Construir relatório
+                reportContainer.innerHTML = `
+                    <div class="card">
+                        <div class="report-section">
+                            <div class="report-title">Resumo de Produtos</div>
+                            <div class="report-stat">
+                                <i class="material-icons">inventory</i>
+                                <div>
+                                    <span class="stat-value">${products.length}</span>
+                                    <span class="stat-label">Produtos cadastrados</span>
+                                </div>
+                            </div>
+                            <div class="report-stat">
+                                <i class="material-icons">warning</i>
+                                <div>
+                                    <span class="stat-value">${expiringProducts.length}</span>
+                                    <span class="stat-label">Produtos próximos ao vencimento</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="report-section">
+                            <div class="report-title">Produtos com Vencimento Próximo</div>
+                            <div class="expiry-list" id="expiry-list">
+                                ${generateExpiryList(expiringProducts)}
+                            </div>
+                        </div>
+                        
+                        <button class="button" id="generate-pdf">
+                            <i class="material-icons">picture_as_pdf</i> Gerar PDF
+                        </button>
+                        
+                        <button class="button sharing" id="share-report">
+                            <i class="material-icons">share</i> Compartilhar Relatório
+                        </button>
+                    </div>
+                `;
+                
+                // Adicionar event listeners
+                document.getElementById('generate-pdf').addEventListener('click', generatePDF);
+                document.getElementById('share-report').addEventListener('click', shareReport);
+            }
+            
+            function generateExpiryList(products) {
+                if (products.length === 0) {
+                    return '<p>Nenhum produto com vencimento próximo.</p>';
+                }
+                
+                let html = '';
+                products.forEach(product => {
+                    html += `
+                        <div class="expiry-item">
                             <div class="expiry-name">${product.name}</div>
                             <div class="expiry-date">${formatDate(product.expiryDate)}</div>
-                        `;
-                        expiryList.appendChild(expiryItem);
-                    });
-                } else {
-                    expiryList.innerHTML = '<p>Nenhum produto com vencimento próximo.</p>';
-                }
+                        </div>
+                    `;
+                });
+                
+                return html;
             }
             
             function formatDate(dateString) {
@@ -287,11 +353,14 @@
                 setTimeout(function() {
                     loadingOverlay.classList.add('hidden');
                     alert('Relatório em PDF gerado com sucesso!');
+                    
+                    // Em um aplicativo real, você geraria um PDF e ofereceria para download
+                    // ou abriria em uma nova janela
                 }, 2000);
             }
             
             function shareReport() {
-                // Simular compartilhamento
+                // Verificar se a Web Share API está disponível
                 if (navigator.share) {
                     navigator.share({
                         title: 'Relatório de Produtos - BR Mania',

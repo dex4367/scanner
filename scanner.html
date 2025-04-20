@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * 'self' blob:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
     <meta name="referrer" content="no-referrer">
     <meta name="theme-color" content="#00843D">
     <title>BR Mania - Scanner de Produtos</title>
@@ -16,16 +16,17 @@
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            overscroll-behavior: none;
         }
         .container {
-            max-width: 600px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px;
         }
         .header {
             background-color: #00843D;
             color: white;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
@@ -33,11 +34,11 @@
         .header h1 {
             margin: 0;
             padding: 0;
-            font-size: 24px;
+            font-size: 20px;
         }
         .logo {
-            max-width: 180px;
-            margin-bottom: 10px;
+            max-width: 150px;
+            margin-bottom: 5px;
         }
         .back-button {
             position: absolute;
@@ -51,12 +52,14 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            padding: 8px;
+            z-index: 10;
         }
         .button {
             background-color: #00843D;
             color: white;
             border: none;
-            padding: 15px 20px;
+            padding: 12px 20px;
             margin: 10px 0;
             border-radius: 6px;
             width: 100%;
@@ -67,9 +70,13 @@
             justify-content: center;
             text-decoration: none;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            -webkit-tap-highlight-color: transparent;
         }
         .button:hover {
             background-color: #00692f;
+        }
+        .button:active {
+            transform: scale(0.98);
         }
         .button i {
             margin-right: 10px;
@@ -77,18 +84,23 @@
         .card {
             background-color: white;
             border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+            padding: 15px;
+            margin: 15px 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .scanner-container {
             width: 100%;
             height: 300px;
-            margin: 20px 0;
+            margin: 15px 0;
             position: relative;
             border-radius: 8px;
             overflow: hidden;
             background-color: #000;
+        }
+        .scanner-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .scan-region {
             position: absolute;
@@ -129,6 +141,7 @@
             border: 1px solid #ccc;
             border-radius: 6px;
             box-sizing: border-box;
+            font-size: 16px;
         }
         .status {
             text-align: center;
@@ -139,6 +152,47 @@
         }
         .hidden {
             display: none;
+        }
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            .scanner-container {
+                height: 50vh;
+            }
+            .card {
+                padding: 12px;
+                margin: 10px 0;
+            }
+            .button {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+            .scan-region {
+                width: 200px;
+                height: 80px;
+            }
+        }
+        /* iOS specific styles */
+        @supports (-webkit-touch-callout: none) {
+            .button {
+                padding: 15px 20px;
+            }
+        }
+        /* Loading spinner */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #00843D;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -158,7 +212,7 @@
             <div class="scanner-container" id="scanner">
                 <div class="scan-region"></div>
                 <div class="scan-line"></div>
-                <video id="preview" width="100%" height="100%"></video>
+                <video id="preview" playsinline autoplay></video>
             </div>
             
             <div class="status" id="scanner-status">
@@ -171,7 +225,7 @@
             
             <div class="form-group hidden" id="manual-input">
                 <label for="barcode-input">Digite o código de barras:</label>
-                <input type="text" id="barcode-input" placeholder="Ex: 7891234567890">
+                <input type="text" id="barcode-input" placeholder="Ex: 7891234567890" pattern="[0-9]*" inputmode="numeric">
                 <button class="button" id="submit-manual">
                     <i class="material-icons">check</i> Confirmar
                 </button>
@@ -207,7 +261,6 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Elementos do DOM
@@ -223,6 +276,9 @@
             const expiryDate = document.getElementById('expiry-date');
             const saveBtn = document.getElementById('save-btn');
             const cancelBtn = document.getElementById('cancel-btn');
+            const preview = document.getElementById('preview');
+            
+            let currentStream = null;
             
             // Iniciar o scanner
             initScanner();
@@ -259,10 +315,7 @@
                 }
                 
                 // Simular salvamento
-                alert('Produto salvo com sucesso!');
-                
-                // Redirecionar para a lista de produtos
-                window.location.href = 'produtos.html';
+                saveProduct(productCode.value, name, expiry);
             });
             
             // Cancelar
@@ -277,43 +330,173 @@
                 initScanner();
             });
             
-            // Função para inicializar o scanner
-            function initScanner() {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    Quagga.init({
-                        inputStream: {
-                            name: "Live",
-                            type: "LiveStream",
-                            target: document.querySelector('#preview'),
-                            constraints: {
-                                width: 640,
-                                height: 480,
-                                facingMode: "environment"
-                            },
-                        },
-                        decoder: {
-                            readers: ["ean_reader", "ean_8_reader", "code_128_reader"]
-                        }
-                    }, function(err) {
-                        if (err) {
-                            scannerStatus.textContent = "Erro ao iniciar a câmera: " + err;
-                            return;
-                        }
-                        Quagga.start();
+            // Função para salvar produto (usando localStorage como exemplo)
+            function saveProduct(code, name, expiryDate) {
+                try {
+                    // Obter produtos existentes
+                    let products = [];
+                    const storedProducts = localStorage.getItem('products');
+                    
+                    if (storedProducts) {
+                        products = JSON.parse(storedProducts);
+                    }
+                    
+                    // Adicionar novo produto
+                    products.push({
+                        id: Date.now().toString(),
+                        code: code,
+                        name: name,
+                        expiryDate: expiryDate,
+                        createdAt: new Date().toISOString()
                     });
                     
-                    Quagga.onDetected(function(result) {
-                        const code = result.codeResult.code;
-                        Quagga.stop();
-                        processBarcode(code);
-                    });
+                    // Salvar no localStorage
+                    localStorage.setItem('products', JSON.stringify(products));
+                    
+                    alert('Produto salvo com sucesso!');
+                    
+                    // Redirecionar para a lista de produtos
+                    window.location.href = 'produtos.html';
+                    
+                } catch (error) {
+                    console.error('Erro ao salvar produto:', error);
+                    alert('Erro ao salvar produto. Tente novamente.');
+                }
+            }
+            
+            // Função para inicializar o scanner usando a API nativa
+            function initScanner() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    scannerStatus.textContent = "Inicializando câmera...";
+                    
+                    // Parar stream existente se houver
+                    if (currentStream) {
+                        currentStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    // Configurar preferências da câmera
+                    const constraints = {
+                        video: {
+                            facingMode: 'environment', // câmera traseira
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+                    
+                    navigator.mediaDevices.getUserMedia(constraints)
+                        .then(function(stream) {
+                            currentStream = stream;
+                            preview.srcObject = stream;
+                            
+                            // Em dispositivos móveis, é melhor carregar o ZXing aqui
+                            loadBarcodeDetector();
+                            
+                            scannerStatus.textContent = "Aponte a câmera para o código de barras do produto";
+                        })
+                        .catch(function(error) {
+                            console.error("Erro ao acessar a câmera:", error);
+                            scannerStatus.textContent = "Erro ao acessar a câmera: " + error.message;
+                            
+                            // Mostrar apenas a entrada manual se a câmera falhar
+                            manualBtn.click();
+                        });
                 } else {
-                    scannerStatus.textContent = "Seu navegador não suporta acesso à câmera";
+                    scannerStatus.textContent = "Este navegador não suporta acesso à câmera";
+                    manualBtn.click();
+                }
+            }
+            
+            // Carrega e inicializa o detector de código de barras
+            function loadBarcodeDetector() {
+                // Tentar usar a API BarcodeDetector nativa se disponível
+                if ('BarcodeDetector' in window) {
+                    try {
+                        const barcodeDetector = new BarcodeDetector({
+                            formats: ['ean_13', 'ean_8', 'code_128', 'qr_code', 'data_matrix']
+                        });
+                        
+                        startNativeDetection(barcodeDetector);
+                        return;
+                    } catch (e) {
+                        console.log('Erro ao inicializar BarcodeDetector nativo:', e);
+                    }
+                }
+                
+                // Alternativa: importar biblioteca zxing-js para detecção
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+                script.onload = function() {
+                    startZXingDetection();
+                };
+                script.onerror = function() {
+                    scannerStatus.textContent = "Não foi possível carregar o detector de código de barras";
+                };
+                document.body.appendChild(script);
+            }
+            
+            // Detecção com a API nativa BarcodeDetector
+            function startNativeDetection(detector) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                let scanning = true;
+                
+                function detectCodes() {
+                    if (!scanning) return;
+                    
+                    if (preview.readyState === preview.HAVE_ENOUGH_DATA) {
+                        canvas.width = preview.videoWidth;
+                        canvas.height = preview.videoHeight;
+                        context.drawImage(preview, 0, 0, canvas.width, canvas.height);
+                        
+                        detector.detect(canvas)
+                            .then(barcodes => {
+                                if (barcodes.length > 0) {
+                                    const barcode = barcodes[0];
+                                    scanning = false;
+                                    processBarcode(barcode.rawValue);
+                                }
+                            })
+                            .catch(err => {
+                                console.error('Erro de detecção:', err);
+                            })
+                            .finally(() => {
+                                if (scanning) {
+                                    requestAnimationFrame(detectCodes);
+                                }
+                            });
+                    } else {
+                        requestAnimationFrame(detectCodes);
+                    }
+                }
+                
+                requestAnimationFrame(detectCodes);
+            }
+            
+            // Detecção usando a biblioteca ZXing
+            function startZXingDetection() {
+                try {
+                    const codeReader = new ZXing.BrowserMultiFormatReader();
+                    codeReader.decodeFromVideoDevice(null, 'preview', (result, error) => {
+                        if (result) {
+                            codeReader.reset();
+                            processBarcode(result.text);
+                        }
+                        // Ignorar erros - ZXing continua tentando automaticamente
+                    });
+                } catch (e) {
+                    console.error('Erro ao inicializar ZXing:', e);
+                    scannerStatus.textContent = "Erro ao inicializar leitor de código. Use a entrada manual.";
                 }
             }
             
             // Processar código de barras escaneado
             function processBarcode(code) {
+                // Parar a câmera
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+                
                 // Preencher formulário do produto
                 productCode.value = code;
                 
@@ -336,7 +519,13 @@
                 // Definir data padrão de validade (3 meses a partir de hoje)
                 const today = new Date();
                 today.setMonth(today.getMonth() + 3);
-                expiryDate.valueAsDate = today;
+                
+                // Formatar a data para o formato YYYY-MM-DD
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                
+                expiryDate.value = `${yyyy}-${mm}-${dd}`;
             }
         });
     </script>
