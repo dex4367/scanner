@@ -45,23 +45,37 @@ const ScannerScreen = () => {
   // Initialize camera permissions
   useEffect(() => {
     (async () => {
-      if (!hasPermission) {
-        await requestPermission();
-      }
-      
-      // Solicitar permissão para o barcode scanner
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasBarcodePermission(status === 'granted');
-      
-      // Initialize database
-      db.transaction((tx) => {
-        tx.executeSql(
-          'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT, name TEXT, expiry_date TEXT);',
-          [],
-          () => console.log('Table created successfully'),
-          (_, error) => console.error('Error creating table:', error)
+      try {
+        // Camera permissions for vision-camera
+        if (!hasPermission) {
+          console.log('Solicitando permissão de câmera via vision-camera');
+          const cameraPermission = await requestPermission();
+          console.log('Permissão de câmera (vision-camera):', cameraPermission);
+        }
+        
+        // Solicitar permissão para o barcode scanner
+        console.log('Solicitando permissão de câmera via expo-barcode-scanner');
+        const { status } = await BarCodeScanner.requestPermissionsAsync();
+        console.log('Permissão de câmera (barcode-scanner):', status);
+        setHasBarcodePermission(status === 'granted');
+        
+        // Initialize database
+        db.transaction((tx) => {
+          tx.executeSql(
+            'CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT, name TEXT, expiry_date TEXT);',
+            [],
+            () => console.log('Table created successfully'),
+            (_, error) => console.error('Error creating table:', error)
+          );
+        });
+      } catch (error) {
+        console.error('Erro ao solicitar permissões:', error);
+        Alert.alert(
+          'Erro de Permissão', 
+          'Não foi possível acessar a câmera. Por favor, verifique as permissões do seu dispositivo.',
+          [{ text: 'OK' }]
         );
-      });
+      }
     })();
   }, []);
 
@@ -472,7 +486,13 @@ const ScannerScreen = () => {
       visible={dateCapturing}
       transparent={false}
       animationType="slide"
-      onRequestClose={() => setDateCapturing(false)}
+      onRequestClose={() => {
+        setDateCapturing(false);
+        // Se estiver no modo de data e cancela a captura sem um resultado
+        if (scanMode === 'date' && !expiryDate) {
+          resetToModeSelection();
+        }
+      }}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalHeader}>
@@ -493,7 +513,7 @@ const ScannerScreen = () => {
         {!capturedImage ? (
           // Camera view for capturing date
           <View style={styles.cameraContainer}>
-            {device ? (
+            {device && hasPermission ? (
               <Camera
                 ref={cameraRef}
                 style={styles.camera}
@@ -501,10 +521,33 @@ const ScannerScreen = () => {
                 isActive={dateCapturing}
                 photo={true}
                 enableZoomGesture
+                onError={(error) => {
+                  console.error('Erro na câmera:', error);
+                  Alert.alert(
+                    'Erro na Câmera', 
+                    'Não foi possível acessar a câmera. Tente novamente mais tarde.',
+                    [{ text: 'OK' }]
+                  );
+                }}
               />
             ) : (
               <View style={styles.cameraPlaceholder}>
-                <Text>Câmera não disponível</Text>
+                <Text style={styles.cameraPlaceholderText}>
+                  {!hasPermission 
+                    ? 'Permissão de câmera negada.' 
+                    : !device 
+                      ? 'Câmera não disponível neste dispositivo.'
+                      : 'Inicializando câmera...'}
+                </Text>
+                {!hasPermission && (
+                  <Button 
+                    mode="contained" 
+                    onPress={requestPermission}
+                    style={{marginTop: 20}}
+                  >
+                    Solicitar Permissão
+                  </Button>
+                )}
               </View>
             )}
             
@@ -522,6 +565,7 @@ const ScannerScreen = () => {
               <TouchableOpacity 
                 style={styles.flashButton}
                 onPress={toggleFlash}
+                disabled={!device || !hasPermission}
               >
                 <IconButton
                   icon={flash === 'on' ? 'flash' : 'flash-off'}
@@ -530,9 +574,12 @@ const ScannerScreen = () => {
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={styles.captureButton}
+                style={[
+                  styles.captureButton,
+                  (!device || !hasPermission) && styles.disabledButton
+                ]}
                 onPress={captureImageForDate}
-                disabled={dateProcessing}
+                disabled={!device || !hasPermission || dateProcessing}
               >
                 <View style={styles.captureButtonInner} />
               </TouchableOpacity>
@@ -684,8 +731,14 @@ const ScannerScreen = () => {
               <Button 
                 mode="contained" 
                 onPress={async () => {
-                  const { status } = await BarCodeScanner.requestPermissionsAsync();
-                  setHasBarcodePermission(status === 'granted');
+                  try {
+                    const { status } = await BarCodeScanner.requestPermissionsAsync();
+                    setHasBarcodePermission(status === 'granted');
+                    console.log('Barcode permission requested, status:', status);
+                  } catch (error) {
+                    console.error('Error requesting barcode permission:', error);
+                    Alert.alert('Erro', 'Não foi possível solicitar permissão de câmera');
+                  }
                 }}
                 style={{marginTop: 20}}
               >
@@ -705,6 +758,14 @@ const ScannerScreen = () => {
                   BarCodeScanner.Constants.BarCodeType.ean8,
                   BarCodeScanner.Constants.BarCodeType.upc_e
                 ]}
+                onMountError={(error) => {
+                  console.error('Barcode scanner mount error:', error);
+                  Alert.alert(
+                    'Erro na Câmera', 
+                    'Não foi possível inicializar o scanner. Verifique se a permissão foi concedida e tente novamente.',
+                    [{ text: 'OK' }]
+                  );
+                }}
               />
               
               <View style={styles.scanRegionHighlight}>
@@ -975,6 +1036,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#333',
+  },
+  cameraPlaceholderText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   dateOverlay: {
     position: 'absolute',
@@ -1254,6 +1320,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  disabledButton: {
+    backgroundColor: 'rgba(128, 128, 128, 0.5)',
   },
 });
 
