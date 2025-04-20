@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * blob: 'self' https: data:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
-  <title>Inventário de Produtos BR Mania</title>
+  <title>Scanner de Produtos BR Mania</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,552 +12,343 @@
     :root {
       --primary: #00843D;
       --primary-dark: #00632E;
-      --primary-light: #4CAF50;
-      --primary-gradient: linear-gradient(135deg, #00843D 0%, #4CAF50 100%);
-      --secondary: #ED1B24;
-      --secondary-dark: #C41018;
-      --secondary-light: #FF5C63;
-      --secondary-gradient: linear-gradient(135deg, #ED1B24 0%, #FF5C63 100%);
-      --light: #f8f9fa;
-      --dark: #212529;
-      --gray: #e9ecef;
-      --gray-dark: #6c757d;
+      --bg-color: #f0f2f5;
       --white: #ffffff;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
-      --radius: 12px;
-      --radius-sm: 8px;
+      --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      --radius: 10px;
       --transition: all 0.3s ease;
+      --font: 'Poppins', sans-serif;
     }
     
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      font-family: var(--font);
     }
     
     body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: var(--light);
-      color: var(--dark);
+      background-color: var(--bg-color);
+      display: flex;
+      flex-direction: column;
       min-height: 100vh;
-      line-height: 1.6;
     }
     
     header {
-      background: var(--primary-gradient);
+      background-color: var(--primary);
       color: white;
-      padding: 1.5rem 1rem;
       text-align: center;
+      padding: 20px;
       box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-    }
-    
-    header::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-      pointer-events: none;
     }
     
     .logo {
-      font-size: 2rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      letter-spacing: 1px;
-    }
-    
-    .logo span {
-      color: var(--secondary);
-      position: relative;
-    }
-    
-    .logo span::after {
-      content: '';
-      position: absolute;
-      bottom: -3px;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: var(--secondary);
-      border-radius: 3px;
+      display: block;
+      margin: 0 auto;
+      max-width: 150px;
+      margin-bottom: 10px;
     }
     
     h1 {
-      font-size: 1.2rem;
-      margin: 0;
-      font-weight: 400;
-      opacity: 0.9;
-    }
-    
-    .container {
-      max-width: 800px;
-      margin: 1.5rem auto;
-      padding: 0 1rem;
-    }
-    
-    .card {
-      background-color: var(--white);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      transition: var(--transition);
-      border-top: 5px solid var(--primary);
-    }
-    
-    .card:hover {
-      box-shadow: var(--shadow-lg);
-      transform: translateY(-5px);
-    }
-    
-    .card h2 {
-      color: var(--primary);
-      margin-bottom: 1.2rem;
       font-size: 1.5rem;
       font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      margin: 0;
     }
     
-    .card h2 i {
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 8px 0;
+      font-size: 1.1rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+    
+    .btn:hover {
+      background-color: var(--primary-dark);
+      transform: translateY(-2px);
+    }
+    
+    .btn i {
+      margin-right: 10px;
       font-size: 1.2rem;
     }
     
-    .form-group {
-      margin-bottom: 1.2rem;
+    footer {
+      text-align: center;
+      padding: 15px;
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    /* Modal */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      background-color: white;
+      border-radius: var(--radius);
+      width: 90%;
+      max-width: 500px;
+      padding: 20px;
+      box-shadow: var(--shadow);
       position: relative;
     }
     
-    .form-group i {
+    .close {
       position: absolute;
-      left: 1rem;
-      top: 2.7rem;
-      color: var(--gray-dark);
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-      color: var(--dark);
-      font-size: 0.9rem;
-    }
-    
-    input, button {
-      width: 100%;
-      padding: 0.85rem;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--gray);
-      font-family: 'Poppins', sans-serif;
-      font-size: 1rem;
-      transition: var(--transition);
-    }
-    
-    input {
-      padding-left: 2.5rem;
-      background-color: var(--light);
-    }
-    
-    input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(0,132,61,0.2);
-    }
-    
-    button {
-      background: var(--primary-gradient);
-      color: white;
-      border: none;
-      font-weight: 500;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
       cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0,132,61,0.2);
     }
     
-    button:hover {
-      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 8px rgba(0,132,61,0.25);
+    /* Scanner */
+    #scanner-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      margin: 15px 0;
     }
     
-    button:active {
-      transform: translateY(0);
-      box-shadow: 0 2px 4px rgba(0,132,61,0.2);
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
     
-    .secondary-btn {
-      background: var(--secondary-gradient);
-      box-shadow: 0 4px 6px rgba(237,27,36,0.2);
+    .scan-region {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 250px;
+      height: 150px;
+      border: 2px solid #00843D;
+      border-radius: 10px;
+      box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.3);
     }
     
-    .secondary-btn:hover {
-      background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--secondary) 100%);
-      box-shadow: 0 6px 8px rgba(237,27,36,0.25);
-    }
-    
-    .outline-btn {
-      background: transparent;
-      color: var(--primary);
-      border: 2px solid var(--primary);
-      font-weight: 500;
-      box-shadow: none;
-    }
-    
-    .outline-btn:hover {
-      background: rgba(0,132,61,0.05);
-      box-shadow: none;
-      transform: translateY(-2px);
-    }
-    
-    #resultado {
-      margin-top: 1.5rem;
-      padding: 1rem;
-      border-radius: var(--radius-sm);
-      background-color: var(--light);
-      font-size: 0.95rem;
-      min-height: 20px;
-      transition: var(--transition);
-    }
-    
-    .loading {
-      text-align: center;
-      color: var(--primary);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .loading::after {
+    .scan-region::before, .scan-region::after {
       content: '';
-      display: inline-block;
-      width: 1rem;
-      height: 1rem;
-      border: 2px solid var(--primary);
-      border-radius: 50%;
-      border-top-color: transparent;
-      animation: spinner 0.8s linear infinite;
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: #00843D;
+      border-style: solid;
     }
     
-    @keyframes spinner {
-      to {
-        transform: rotate(360deg);
-      }
+    .scan-region::before {
+      top: -2px;
+      left: -2px;
+      border-width: 4px 0 0 4px;
+      border-radius: 5px 0 0 0;
     }
     
-    .error {
-      color: var(--secondary);
-      border-left: 4px solid var(--secondary);
-      padding-left: 1rem;
-      background-color: rgba(237,27,36,0.05);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    .scan-region::after {
+      bottom: -2px;
+      right: -2px;
+      border-width: 0 4px 4px 0;
+      border-radius: 0 0 5px 0;
     }
     
-    .success {
-      color: var(--primary);
-      border-left: 4px solid var(--primary);
-      padding-left: 1rem;
-      background-color: rgba(0,132,61,0.05);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    .flash {
+      animation: flash 0.5s;
     }
     
-    .produto-info {
-      margin-top: 1rem;
-      padding: 1rem;
-      border-left: 4px solid var(--primary);
-      background-color: rgba(0,132,61,0.05);
-      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-      font-size: 0.95rem;
+    @keyframes flash {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
     }
     
-    .produtos-container {
-      margin-top: 1.5rem;
-      max-height: 350px;
+    /* Lista de produtos */
+    .product-list {
+      background-color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      max-height: 400px;
       overflow-y: auto;
-      border: 1px solid var(--gray);
-      border-radius: var(--radius-sm);
-      background-color: var(--light);
-      scrollbar-width: thin;
-      scrollbar-color: var(--primary) var(--light);
+      margin-top: 15px;
     }
     
-    .produtos-container::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    .produtos-container::-webkit-scrollbar-thumb {
-      background-color: var(--primary);
-      border-radius: 4px;
-    }
-    
-    .produtos-container::-webkit-scrollbar-track {
-      background-color: var(--light);
-    }
-    
-    .produto-item {
-      padding: 1rem;
-      border-bottom: 1px solid var(--gray);
+    .product-item {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      background-color: var(--white);
-      transition: var(--transition);
     }
     
-    .produto-item:hover {
-      background-color: rgba(0,132,61,0.03);
-    }
-    
-    .produto-item:last-child {
-      border-bottom: none;
-    }
-    
-    .produto-item .info {
-      flex: 1;
-    }
-    
-    .produto-item .info strong {
+    .product-info h3 {
+      margin: 0;
+      font-size: 1rem;
       color: var(--primary-dark);
-      font-size: 1.05rem;
     }
     
-    .produto-item .info .codigo-text {
-      color: var(--gray-dark);
+    .product-info p {
+      margin: 5px 0 0;
       font-size: 0.9rem;
-    }
-    
-    .produto-item .info .data-text {
-      color: var(--secondary);
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    
-    .produto-item .actions {
-      display: flex;
-      gap: 0.5rem;
-    }
-    
-    .delete-btn {
-      color: var(--secondary);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem;
-      width: auto;
-      height: 2rem;
-      width: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      border-radius: 50%;
-      transition: var(--transition);
-    }
-    
-    .delete-btn:hover {
-      background-color: rgba(237,27,36,0.1);
-      transform: scale(1.1);
-    }
-    
-    .btn-group {
-      display: flex;
-      gap: 0.8rem;
-      margin-top: 1.5rem;
-    }
-    
-    .btn-group button {
-      flex: 1;
-    }
-    
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      color: #666;
     }
     
     .empty-list {
+      padding: 30px;
       text-align: center;
-      padding: 3rem 1rem;
-      color: var(--gray-dark);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      color: #999;
     }
     
     .empty-list i {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      opacity: 0.5;
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 10px;
+      color: #ddd;
     }
     
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 50px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      margin-left: 0.5rem;
+    .date-input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      margin-top: 10px;
+      font-size: 1rem;
     }
     
-    .badge-primary {
+    /* Overlay de notificação */
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
       background-color: var(--primary);
       color: white;
+      padding: 12px 20px;
+      border-radius: 50px;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 1001;
     }
     
-    @media (max-width: 768px) {
-      .container {
-        padding: 0 0.75rem;
-      }
-      
-      .card {
-        padding: 1.25rem;
-      }
-      
-      header {
-        padding: 1.25rem 1rem;
-      }
-      
-      .logo {
-        font-size: 1.75rem;
-      }
+    .notification.show {
+      display: block;
+      animation: slideUp 0.3s, fadeOut 0.5s 2s forwards;
     }
     
-    @media (max-width: 480px) {
-      .container {
-        padding: 0 0.5rem;
-      }
-      
-      .card {
-        padding: 1rem;
-      }
-      
-      h1 {
-        font-size: 1rem;
-      }
-      
-      .two-col {
-        grid-template-columns: 1fr;
-      }
-      
-      .btn-group {
-        flex-direction: column;
-      }
+    @keyframes slideUp {
+      from { transform: translate(-50%, 20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
     }
     
-    .shake {
-      animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-    }
-    
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-1px, 0, 0); }
-      20%, 80% { transform: translate3d(2px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-3px, 0, 0); }
-      40%, 60% { transform: translate3d(3px, 0, 0); }
-    }
-    
-    .fade-in {
-      animation: fadeIn 0.5s ease-in;
-    }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes fadeOut {
+      to { opacity: 0; }
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="logo">BR <span>MANIA</span></div>
-    <h1>Sistema de Inventário e Controle de Produtos</h1>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NEVFNUU1NUY2MkJBMTFFQUFFQTBBRTVENUQxMTBDMUEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NEVFNUU1NjA2MkJBMTFFQUFFQTBBRTVENUQxMTBDMUEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo0RUU1RTU1RDYyQkExMUVBQUVBMEFFNUQ1RDExMEMxQSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo0RUU1RTU1RTYyQkExMUVBQUVBMEFFNUQ1RDExMEMxQSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgWdRMYAAARUSURBVHja7J1JaBRBGIV/J4Mb4h7cUBRciYi4b3jQixAEA4riUTx5ETx48+LBm0dFPIgHD+JBEdGLioqKuICoiHE3LnFfcDcuMVHjnteZhGES05npnu6arrwPPjLDTE9P9+vqrq+qamKpVEoYt+lFE1AAjAPGAeOAccA4YBwwDhgHjAPGAePAaXppQ/2pVCrJNvGPWCyW+e+wLM7qwDgoYvg6gHHAOGAcMA4YB4wDxgHjgHHAOHCCGJugrHI6ndZZf9lrTXNzM9sAGQeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAdlgDkP0LVp9W6PxWKxQtpA3AZQAGwCsBNQvwEwDhgHjAPGAeOAcVCG9GYTlMqSvAMYB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA5iiZYW1tOMF+YaiUQiMs4DJJYnl2xdH1UAjAPGAeOAcUCJIQVQxPgdcJCJO28AjAPGAeOAcUBxQAEUMWwDZBwwDpxzHoBdwMxS2YC8ARgHjAPGAeOA4oACKGJ8dAGVzY2ttwHjgHHAOGAcUBxQAEWM1wFUVSUil/Z2G4BxwDhgHFAAUAAUQBEjoA+gJBKJyCRV3ABg+vTpsnjxYunTp4+0trbK5cuX5c2bN/qcWbNmyYoVK2To0KHS3Nwsd+7ckdu3b0c2rteuXSvjx4/X/9++fVuuXr0qP378eHUlEpFJ+oWCN10Fad++vdLQ0CA1NTX67+7du0ttba2sW7dOBg0aJP369dPlO3fulMmTJ0dtWCVVVSX9+/eX2tpa6devnx7n7t27Zf369TJ69GgZOnSoLt+1a5fU1dVF3gaIRAAmTJggAwcOlBs3buiyEydOyPTp06WyslJmzpypi+vr6+Xz58+yYMGCKA6tNnSmTJkiAwYMkOvXr+uyEydOyIwZM6SqqkrPePr06aMHfO7cuTJv3rzoCiBSNkBTU5P8/ftXW/shaMju3bsnHz9+lKamJj3wfgPcvXs3igOrB/z+/fv6MTU1NekB9xuAZdu3b5ePHz/K169fIymAyCwHl5eX64Z9+/ZNWlpatOGze/du+fLli3z//l3LwYUW6AdKrqys1E98uHz58kVaW1t148+dO6f/btmyRR9zDa8BtqxIxEEkBDBixAhZtmyZDBkyRMrKyqR379563MGDB6WhoUE/QRYtWiTLly+XESNGRHFYZdSoUbJs2TKpr6+Xnj176htu7ty5erxBDN++fdNxFT8GOHbsWL0OEMUYIBLrAC0tLfLgwQP5+fOnFsHu3bu14XP//n158uSJGkJ//vyRBw8e6GdRZPn1S27evKkPf8wXLFigHx7Pnj0L/PsRTpQIrRe3A8QDN4ANKi0NLPdnAF4HcAC+DcA4YBwwDiiAyC0H2/QvHbYBMg4YB4wDxgEFwC5gEeO3KOwj42wDYBwwDhgHFIAT+CeAAQB1APUa4tTKDwAAAABJRU5ErkJggg==" alt="BR Mania" class="logo">
+    <h1>Scanner de Produtos</h1>
   </header>
 
-  <div class="container">
-    <div class="card fade-in">
-      <h2><i class="fas fa-barcode"></i> Cadastro de Produtos</h2>
-      <div class="form-group">
-        <label for="codigoInput">Código de Barras:</label>
-        <i class="fas fa-barcode"></i>
-        <input
-          type="text"
-          id="codigoInput"
-          placeholder="Digite ou escaneie o código de barras"
-          pattern="[0-9]*" 
-          inputmode="numeric"
-        />
+  <main>
+    <button class="btn" id="scannerBtn"><i class="fas fa-qrcode"></i> Escanear Produto</button>
+    <button class="btn" id="productListBtn"><i class="fas fa-list"></i> Produtos Cadastrados</button>
+    <button class="btn" id="reportBtn"><i class="fas fa-file-pdf"></i> Gerar Relatório</button>
+  </main>
+  
+  <div class="modal" id="scannerModal">
+    <div class="modal-content">
+      <span class="close" id="closeScanner">&times;</span>
+      <h2>Escaneie o código de barras</h2>
+      <div id="scanner-container">
+        <video id="video" playsinline></video>
+        <div class="scan-region"></div>
       </div>
-      
-      <div class="form-group">
-        <label for="nomeInput">Nome do Produto:</label>
-        <i class="fas fa-box"></i>
-        <input
-          type="text"
-          id="nomeInput"
-          placeholder="Digite o nome do produto"
-        />
-      </div>
-      
-      <div class="form-group">
-        <label for="dataInput">Data de Validade:</label>
-        <i class="fas fa-calendar-alt"></i>
-        <input
-          type="text"
-          id="dataInput"
-          placeholder="DD/MM/AAAA"
-          pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}"
-        />
-      </div>
-      
-      <div class="btn-group">
-        <button id="buscarBtn"><i class="fas fa-search"></i> Buscar por Código</button>
-        <button id="adicionarBtn" class="secondary-btn"><i class="fas fa-plus"></i> Adicionar Produto</button>
-      </div>
-      
-      <div id="resultado"></div>
-    </div>
-    
-    <div class="card fade-in">
-      <h2><i class="fas fa-clipboard-list"></i> Produtos Registrados <span class="badge badge-primary" id="contadorProdutos">0</span></h2>
-      <div id="produtosContainer" class="produtos-container">
-        <div class="empty-list">
-          <i class="fas fa-shopping-basket"></i>
-          <p>Nenhum produto registrado</p>
-          <small>Adicione produtos usando o formulário acima</small>
-        </div>
-      </div>
-      
-      <div class="btn-group">
-        <button id="limparBtn" class="outline-btn"><i class="fas fa-trash-alt"></i> Limpar Lista</button>
-        <button id="gerarPdfBtn"><i class="fas fa-file-pdf"></i> Gerar Relatório PDF</button>
+      <div class="form-container">
+        <input type="text" id="dataInput" class="date-input" placeholder="Data de validade (DD/MM/AAAA)" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}">
       </div>
     </div>
   </div>
+  
+  <div class="modal" id="productListModal">
+    <div class="modal-content">
+      <span class="close" id="closeProductList">&times;</span>
+      <h2>Produtos Cadastrados <span id="productCount">(0)</span></h2>
+      <div class="product-list" id="productListContainer">
+        <div class="empty-list">
+          <i class="fas fa-shopping-bag"></i>
+          <p>Nenhum produto cadastrado</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="notification" id="notification"></div>
+  
+  <footer>
+    &copy; 2025 BR Mania - Scanner de Produtos
+  </footer>
 
+  <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script>
     // Armazenamento de produtos
     let produtos = [];
+    let scanner = null;
     
-    // Atualizar contador
-    function atualizarContador() {
-      document.getElementById("contadorProdutos").textContent = produtos.length;
-    }
+    // DOM Elements
+    const scannerBtn = document.getElementById('scannerBtn');
+    const productListBtn = document.getElementById('productListBtn');
+    const reportBtn = document.getElementById('reportBtn');
+    const scannerModal = document.getElementById('scannerModal');
+    const productListModal = document.getElementById('productListModal');
+    const closeScanner = document.getElementById('closeScanner');
+    const closeProductList = document.getElementById('closeProductList');
+    const productListContainer = document.getElementById('productListContainer');
+    const productCount = document.getElementById('productCount');
+    const video = document.getElementById('video');
+    const notification = document.getElementById('notification');
+    const dataInput = document.getElementById('dataInput');
+    
+    // Event Listeners
+    scannerBtn.addEventListener('click', openScanner);
+    productListBtn.addEventListener('click', openProductList);
+    reportBtn.addEventListener('click', generateReport);
+    closeScanner.addEventListener('click', closeModal);
+    closeProductList.addEventListener('click', closeModal);
     
     // Formatação de data
-    function formatarData(input) {
-      let valor = input.value.replace(/\D/g, '');
+    dataInput.addEventListener('input', function() {
+      let valor = this.value.replace(/\D/g, '');
       
       if (valor.length > 0) {
         valor = valor.substring(0, 8);
@@ -568,189 +359,174 @@
         }
       }
       
-      input.value = valor;
-    }
-    
-    // Evento de formatação de data
-    document.getElementById("dataInput").addEventListener('input', function() {
-      formatarData(this);
+      this.value = valor;
     });
     
-    // Buscar produto por código
-    document.getElementById("buscarBtn").addEventListener("click", buscarProduto);
-    
-    // Adicionar produto
-    document.getElementById("adicionarBtn").addEventListener("click", adicionarProduto);
-    
-    // Limpar lista
-    document.getElementById("limparBtn").addEventListener("click", limparLista);
-    
-    // Gerar PDF
-    document.getElementById("gerarPdfBtn").addEventListener("click", gerarPDF);
-    
-    // Enter no campo de código
-    document.getElementById("codigoInput").addEventListener("keyup", function(event) {
-      if (event.key === "Enter") {
-        buscarProduto();
-      }
-    });
+    // Inicialização
+    function initializeScanner() {
+      const codeReader = new ZXing.BrowserMultiFormatReader();
       
-    async function buscarProduto() {
-      const codigo = document.getElementById("codigoInput").value.trim();
-      const nomeInput = document.getElementById("nomeInput");
-      const resultadoEl = document.getElementById("resultado");
-
-      if (!codigo) {
-        resultadoEl.textContent = "Por favor, insira um código válido.";
-        resultadoEl.className = "error";
-        document.getElementById("codigoInput").classList.add("shake");
-        setTimeout(() => {
-          document.getElementById("codigoInput").classList.remove("shake");
-        }, 500);
-        return;
-      }
-
-      resultadoEl.innerHTML = '<div class="loading">Buscando produto</div>';
-      resultadoEl.className = "loading";
-
-      try {
-        // Primeiro tentamos a API do Brasil
-        const res = await fetch(
-          `https://brasilapi.com.br/api/codigos-barra/v1/${codigo}`
-        );
-
-        console.log("Status BrasilAPI:", res.status);
-        
-        if (res.ok) {
-          const data = await res.json();
-          console.log("Dados BrasilAPI:", data);
+      codeReader.listVideoInputDevices()
+        .then((videoInputDevices) => {
+          const firstDevice = videoInputDevices[0].deviceId;
           
-          if (data && data.nome) {
-            // Preencher o nome do produto automaticamente
-            nomeInput.value = data.nome;
-            
-            resultadoEl.innerHTML = `
-              <div class="produto-info fade-in">
-                <strong style="font-size: 1.1rem; color: var(--primary-dark);">${data.nome || "Nome não disponível"}</strong>
-                <p><i class="fas fa-tag"></i> Tipo: ${data.tipo || "N/D"}</p>
-                <p><i class="fas fa-barcode"></i> Código: ${codigo}</p>
-              </div>`;
-            resultadoEl.className = "success";
-            return;
-          }
-        }
-        
-        // Se chegou aqui, a primeira API falhou ou não encontrou o produto
-        // Tentar API alternativa
-        resultadoEl.innerHTML = '<div class="loading">Buscando em fonte alternativa</div>';
-        
-        const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${codigo}`, {
-          method: 'GET',
-          headers: {
-            'X-Cosmos-Token': 'g3FQ0LCr8G05pMOiDM9YyQ',
-            'Content-Type': 'application/json'
-          }
+          codeReader.decodeFromVideoDevice(
+            firstDevice,
+            'video',
+            (result, err) => {
+              if (result) {
+                handleScan(result.getText());
+              }
+              if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.error(err);
+              }
+            }
+          );
+          
+          scanner = codeReader;
+        })
+        .catch(err => {
+          console.error(err);
+          showNotification('Erro ao acessar a câmera. Verifique as permissões.');
         });
+    }
+    
+    // Gerenciar scans
+    async function handleScan(barcode) {
+      // Efeito visual de flash
+      document.querySelector('.scan-region').classList.add('flash');
+      setTimeout(() => {
+        document.querySelector('.scan-region').classList.remove('flash');
+      }, 500);
+      
+      // Buscar produto
+      try {
+        let productData = null;
         
-        console.log("Status Cosmos API:", alternativeRes.status);
-        
-        if (alternativeRes.ok) {
-          const alternativeData = await alternativeRes.json();
-          console.log("Dados Cosmos API:", alternativeData);
+        // Primeiro tentamos a API do Brasil
+        try {
+          const res = await fetch(`https://brasilapi.com.br/api/codigos-barra/v1/${barcode}`);
           
-          if (alternativeData && alternativeData.description) {
-            // Preencher o nome do produto automaticamente
-            nomeInput.value = alternativeData.description;
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.nome) {
+              productData = {
+                codigo: barcode,
+                nome: data.nome,
+                tipo: data.tipo || 'N/D'
+              };
+            }
+          }
+        } catch (err) {
+          console.log("Erro na BrasilAPI");
+        }
+        
+        // Se não encontrou, tenta a API alternativa
+        if (!productData) {
+          try {
+            const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${barcode}`, {
+              method: 'GET',
+              headers: {
+                'X-Cosmos-Token': 'g3FQ0LCr8G05pMOiDM9YyQ',
+                'Content-Type': 'application/json'
+              }
+            });
             
-            resultadoEl.innerHTML = `
-              <div class="produto-info fade-in">
-                <strong style="font-size: 1.1rem; color: var(--primary-dark);">${alternativeData.description || "Nome não disponível"}</strong>
-                <p><i class="fas fa-building"></i> Marca: ${alternativeData.brand ? alternativeData.brand.name : "N/D"}</p>
-                <p><i class="fas fa-barcode"></i> Código: ${codigo}</p>
-              </div>`;
-            resultadoEl.className = "success";
-            return;
+            if (alternativeRes.ok) {
+              const data = await alternativeRes.json();
+              if (data && data.description) {
+                productData = {
+                  codigo: barcode,
+                  nome: data.description,
+                  marca: data.brand ? data.brand.name : 'N/D'
+                };
+              }
+            }
+          } catch (err) {
+            console.log("Erro na Cosmos API");
           }
         }
         
-        // Se chegou aqui, nenhuma API funcionou
-        resultadoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Produto não encontrado. Digite o nome manualmente.`;
-        resultadoEl.className = "error";
+        // Se ainda não encontrou, cria produto genérico
+        if (!productData) {
+          productData = {
+            codigo: barcode,
+            nome: `Produto ${barcode}`,
+            tipo: 'Não identificado'
+          };
+        }
         
+        // Aguardar input de data
+        const confirmAdd = confirm(`Produto encontrado: ${productData.nome}\nDeseja adicionar ao inventário?`);
+        
+        if (confirmAdd) {
+          const dataValidade = dataInput.value.trim();
+          
+          if (dataValidade && !/^\d{2}\/\d{2}\/\d{4}$/.test(dataValidade)) {
+            showNotification('Por favor, insira a data no formato DD/MM/AAAA.');
+            return;
+          }
+          
+          // Adicionar à lista
+          const produto = {
+            ...productData,
+            data: dataValidade,
+            timestamp: new Date().toISOString()
+          };
+          
+          produtos.push(produto);
+          updateProductList();
+          
+          // Limpar campo de data
+          dataInput.value = '';
+          
+          // Feedback
+          showNotification(`Produto "${produto.nome}" adicionado com sucesso!`);
+          
+          // Fechar modal após adicionar
+          setTimeout(() => {
+            closeModal();
+          }, 1500);
+        }
       } catch (err) {
-        console.error("Erro geral:", err);
-        resultadoEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Erro ao consultar as APIs. Digite o nome manualmente.`;
-        resultadoEl.className = "error";
+        console.error(err);
+        showNotification('Erro ao processar o código de barras');
       }
     }
     
-    function adicionarProduto() {
-      const codigo = document.getElementById("codigoInput").value.trim();
-      const nome = document.getElementById("nomeInput").value.trim();
-      const data = document.getElementById("dataInput").value.trim();
-      const resultadoEl = document.getElementById("resultado");
-      
-      if (!codigo || !nome) {
-        resultadoEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Por favor, preencha o código e o nome do produto.`;
-        resultadoEl.className = "error";
-        
-        if (!codigo) document.getElementById("codigoInput").classList.add("shake");
-        if (!nome) document.getElementById("nomeInput").classList.add("shake");
-        
-        setTimeout(() => {
-          document.getElementById("codigoInput").classList.remove("shake");
-          document.getElementById("nomeInput").classList.remove("shake");
-        }, 500);
-        return;
-      }
-      
-      // Validar formato da data
-      if (data && !/^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
-        resultadoEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Por favor, insira a data no formato DD/MM/AAAA.`;
-        resultadoEl.className = "error";
-        document.getElementById("dataInput").classList.add("shake");
-        setTimeout(() => {
-          document.getElementById("dataInput").classList.remove("shake");
-        }, 500);
-        return;
-      }
-      
-      // Adicionar produto à lista
-      const produto = {
-        codigo,
-        nome,
-        data,
-        timestamp: new Date().toISOString()
-      };
-      
-      produtos.push(produto);
-      
-      // Atualizar a lista e contador
-      atualizarListaProdutos();
-      atualizarContador();
-      
-      // Limpar campos
-      document.getElementById("codigoInput").value = "";
-      document.getElementById("nomeInput").value = "";
-      document.getElementById("dataInput").value = "";
-      
-      resultadoEl.innerHTML = `<i class="fas fa-check-circle"></i> Produto "${nome}" adicionado com sucesso!`;
-      resultadoEl.className = "success";
-      
-      // Focar no campo de código para facilitar nova adição
-      document.getElementById("codigoInput").focus();
+    // Funções para abrir/fechar modais
+    function openScanner() {
+      scannerModal.style.display = 'flex';
+      initializeScanner();
     }
     
-    function atualizarListaProdutos() {
-      const container = document.getElementById("produtosContainer");
+    function openProductList() {
+      updateProductList();
+      productListModal.style.display = 'flex';
+    }
+    
+    function closeModal() {
+      scannerModal.style.display = 'none';
+      productListModal.style.display = 'none';
+      
+      // Parar o scanner quando fechar o modal
+      if (scanner) {
+        scanner.reset();
+        scanner = null;
+      }
+    }
+    
+    // Atualizar a lista de produtos
+    function updateProductList() {
+      productCount.textContent = `(${produtos.length})`;
       
       if (produtos.length === 0) {
-        container.innerHTML = `
+        productListContainer.innerHTML = `
           <div class="empty-list">
-            <i class="fas fa-shopping-basket"></i>
-            <p>Nenhum produto registrado</p>
-            <small>Adicione produtos usando o formulário acima</small>
-          </div>`;
+            <i class="fas fa-shopping-bag"></i>
+            <p>Nenhum produto cadastrado</p>
+          </div>
+        `;
         return;
       }
       
@@ -758,45 +534,37 @@
       
       produtos.forEach((produto, index) => {
         html += `
-          <div class="produto-item fade-in">
-            <div class="info">
-              <strong>${produto.nome}</strong><br>
-              <span class="codigo-text"><i class="fas fa-barcode"></i> ${produto.codigo}</span>
-              ${produto.data ? `<br><span class="data-text"><i class="fas fa-calendar-alt"></i> Validade: ${produto.data}</span>` : ''}
+          <div class="product-item">
+            <div class="product-info">
+              <h3>${produto.nome}</h3>
+              <p>Código: ${produto.codigo}</p>
+              ${produto.data ? `<p>Validade: ${produto.data}</p>` : ''}
             </div>
-            <div class="actions">
-              <button class="delete-btn" onclick="removerProduto(${index})"><i class="fas fa-times"></i></button>
+            <div class="product-actions">
+              <button onclick="removeProduct(${index})">
+                <i class="fas fa-trash"></i>
+              </button>
             </div>
           </div>
         `;
       });
       
-      container.innerHTML = html;
+      productListContainer.innerHTML = html;
     }
     
-    function removerProduto(index) {
-      produtos.splice(index, 1);
-      atualizarListaProdutos();
-      atualizarContador();
-    }
-    
-    function limparLista() {
-      if (produtos.length === 0) return;
-      
-      if (confirm("Tem certeza que deseja limpar a lista de produtos?")) {
-        produtos = [];
-        atualizarListaProdutos();
-        atualizarContador();
+    // Remover produto
+    function removeProduct(index) {
+      if (confirm('Deseja remover este produto?')) {
+        produtos.splice(index, 1);
+        updateProductList();
+        showNotification('Produto removido');
       }
     }
     
-    function gerarPDF() {
+    // Gerar relatório PDF
+    function generateReport() {
       if (produtos.length === 0) {
-        alert("Adicione produtos à lista antes de gerar o PDF.");
-        document.getElementById("adicionarBtn").classList.add("shake");
-        setTimeout(() => {
-          document.getElementById("adicionarBtn").classList.remove("shake");
-        }, 500);
+        showNotification('Adicione produtos antes de gerar o relatório');
         return;
       }
       
@@ -805,50 +573,34 @@
       const doc = new jsPDF();
       
       // Título
-      doc.setFontSize(22);
+      doc.setFontSize(20);
       doc.setTextColor(0, 132, 61); // Verde BR Mania
       doc.text("RELATÓRIO DE PRODUTOS", 105, 20, { align: "center" });
       
-      doc.setFontSize(16);
-      doc.setTextColor(237, 27, 36); // Vermelho BR Mania
+      doc.setFontSize(14);
       doc.text("BR MANIA", 105, 30, { align: "center" });
       
-      doc.setFontSize(12);
+      doc.setFontSize(10);
       doc.setTextColor(0, 0, 0); // Preto
       
       // Data atual
       const dataAtual = new Date().toLocaleDateString('pt-BR');
-      const horaAtual = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-      doc.text(`Gerado em: ${dataAtual} às ${horaAtual}`, 105, 40, { align: "center" });
-      
-      // Informação do total
-      doc.setFontSize(12);
-      doc.setTextColor(0, 132, 61);
-      doc.text(`Total de produtos: ${produtos.length}`, 105, 48, { align: "center" });
+      doc.text(`Data: ${dataAtual}`, 105, 40, { align: "center" });
+      doc.text(`Total de produtos: ${produtos.length}`, 105, 45, { align: "center" });
       
       // Linha divisória
       doc.setDrawColor(0, 132, 61);
       doc.setLineWidth(0.5);
-      doc.line(20, 55, 190, 55);
+      doc.line(20, 50, 190, 50);
       
       // Produtos
-      doc.setFontSize(10);
-      let y = 65;
+      let y = 60;
       
       produtos.forEach((produto, index) => {
         // Se estiver perto do fim da página, criar nova página
         if (y > 270) {
           doc.addPage();
           y = 20;
-          
-          // Cabeçalho da nova página
-          doc.setFontSize(10);
-          doc.setTextColor(0, 132, 61);
-          doc.text("Relatório de Produtos BR MANIA - Continuação", 105, 10, { align: "center" });
-          doc.setDrawColor(0, 132, 61);
-          doc.setLineWidth(0.3);
-          doc.line(20, 15, 190, 15);
-          y = 25;
         }
         
         doc.setFontSize(12);
@@ -860,51 +612,45 @@
         doc.text(`Código: ${produto.codigo}`, 25, y + 6);
         
         if (produto.data) {
-          doc.setTextColor(237, 27, 36);
-          doc.text(`Validade: ${produto.data}`, 120, y + 6);
-          doc.setTextColor(0, 0, 0);
-          y += 15;
+          doc.text(`Validade: ${produto.data}`, 25, y + 12);
+          y += 18;
         } else {
-          y += 15;
-        }
-        
-        // Linha divisória entre produtos
-        if (index < produtos.length - 1) {
-          doc.setDrawColor(200, 200, 200);
-          doc.setLineWidth(0.1);
-          doc.line(25, y - 5, 185, y - 5);
+          y += 12;
         }
       });
       
       // Rodapé
-      const totalPaginas = doc.getNumberOfPages();
+      doc.setDrawColor(0, 132, 61);
+      doc.setLineWidth(0.5);
+      doc.line(20, 280, 190, 280);
       
-      for (let i = 1; i <= totalPaginas; i++) {
-        doc.setPage(i);
-        
-        // Linha de rodapé
-        doc.setDrawColor(0, 132, 61);
-        doc.setLineWidth(0.5);
-        doc.line(20, 280, 190, 280);
-        
-        doc.setFontSize(8);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Página ${i} de ${totalPaginas}`, 105, 287, { align: "center" });
-        doc.text("BR MANIA - Sistema de Inventário", 20, 287);
-        doc.text(`Data: ${dataAtual}`, 190, 287, { align: "right" });
-      }
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text("BR MANIA - Relatório de Inventário", 105, 287, { align: "center" });
       
       // Salvar PDF
       doc.save(`inventario_brmania_${dataAtual.replace(/\//g, '-')}.pdf`);
-      
-      const resultadoEl = document.getElementById("resultado");
-      resultadoEl.innerHTML = `<i class="fas fa-check-circle"></i> Relatório PDF gerado com sucesso!`;
-      resultadoEl.className = "success";
+      showNotification('Relatório PDF gerado com sucesso!');
     }
     
-    // Inicializar lista de produtos
-    atualizarListaProdutos();
-    atualizarContador();
+    // Função para mostrar notificações
+    function showNotification(message) {
+      notification.textContent = message;
+      notification.classList.add('show');
+      
+      setTimeout(() => {
+        notification.classList.remove('show');
+      }, 3000);
+    }
+    
+    // Fechar modais ao clicar fora deles
+    window.onclick = function(event) {
+      if (event.target === scannerModal) {
+        closeModal();
+      } else if (event.target === productListModal) {
+        closeModal();
+      }
+    };
   </script>
 </body>
 </html> 
