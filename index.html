@@ -236,6 +236,10 @@
                             <li>Tente acessar em um navegador diferente (Chrome ou Firefox)</li>
                         </ol>
                     </div>
+                    <button class="button" onclick="reRequestCameraPermission()" style="background-color: #4CAF50; margin-top: 10px;">
+                        <span class="material-icons">refresh</span>&nbsp;
+                        Tentar Novamente
+                    </button>
                 </div>
                 <div class="scanner-container">
                     <div id="reader">
@@ -328,12 +332,17 @@
                         // Se a permissão foi concedida, reiniciar o scanner
                         if (permissionDenied) {
                             permissionDenied = false;
+                            document.getElementById('camera-permission-error').classList.add('hidden');
                             initScanner();
                         }
                     }
                 };
                 
-                if (permissionStatus.state === 'denied') {
+                // Se a permissão já foi concedida, não mostrar erro
+                if (permissionStatus.state === 'granted') {
+                    permissionDenied = false;
+                    document.getElementById('camera-permission-error').classList.add('hidden');
+                } else if (permissionStatus.state === 'denied') {
                     document.getElementById('camera-permission-error').classList.remove('hidden');
                     permissionDenied = true;
                 }
@@ -406,37 +415,60 @@
         
         function initScanner() {
             if (html5QrCode) {
-                html5QrCode.stop();
+                try {
+                    html5QrCode.stop().catch(err => console.log('Erro ao parar scanner:', err));
+                } catch (e) {
+                    console.log('Erro ao tentar parar scanner:', e);
+                }
             }
             
             document.getElementById('scanner-result').classList.add('hidden');
             document.getElementById('scanner-status').innerText = "Procurando câmeras...";
-            document.getElementById('camera-permission-error').classList.add('hidden');
             
-            html5QrCode = new Html5Qrcode("reader");
+            // Só esconder o erro de permissão se ainda não confirmamos que foi negado
+            if (!permissionDenied) {
+                document.getElementById('camera-permission-error').classList.add('hidden');
+            }
             
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length) {
-                    cameras = devices;
-                    document.getElementById('scanner-status').innerText = `${devices.length} câmeras encontradas. Iniciando...`;
-                    
-                    if (devices.length > 1) {
-                        document.getElementById('switch-camera-btn').style.display = 'block';
-                    }
-                    
-                    cameraId = devices[0].id;
-                    startScanner();
-                } else {
-                    document.getElementById('scanner-status').innerText = "Nenhuma câmera encontrada!";
-                    // Mostrar apenas as opções de upload
-                    document.getElementById('manual-controls').style.display = 'block';
-                }
-            }).catch(err => {
-                console.log('Error getting cameras', err);
-                document.getElementById('scanner-status').innerText = "Erro ao acessar câmeras: " + err.message;
-                document.getElementById('camera-permission-error').classList.remove('hidden');
-                permissionDenied = true;
-            });
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                
+                Html5Qrcode.getCameras()
+                    .then(devices => {
+                        if (devices && devices.length) {
+                            cameras = devices;
+                            document.getElementById('scanner-status').innerText = `${devices.length} câmeras encontradas. Iniciando...`;
+                            
+                            if (devices.length > 1) {
+                                document.getElementById('switch-camera-btn').style.display = 'block';
+                            }
+                            
+                            cameraId = devices[0].id;
+                            startScanner();
+                        } else {
+                            document.getElementById('scanner-status').innerText = "Nenhuma câmera encontrada!";
+                            // Mostrar apenas as opções de upload
+                            document.getElementById('manual-controls').style.display = 'block';
+                        }
+                    })
+                    .catch(err => {
+                        console.log('Erro ao obter câmeras:', err);
+                        document.getElementById('scanner-status').innerText = "Erro ao acessar câmeras: " + err.message;
+                        
+                        // Verificar se o erro é relacionado a permissão
+                        if (err.name === 'NotAllowedError' || err.message.includes('Permission denied') || err.message.includes('permission')) {
+                            document.getElementById('camera-permission-error').classList.remove('hidden');
+                            permissionDenied = true;
+                        }
+                        
+                        // Mostrar controles manuais em caso de erro
+                        document.getElementById('manual-controls').style.display = 'block';
+                    });
+            } catch (err) {
+                console.error('Erro ao inicializar scanner:', err);
+                document.getElementById('scanner-status').innerText = "Erro ao inicializar scanner: " + err.message;
+                document.getElementById('manual-controls').style.display = 'block';
+            }
         }
         
         function switchCamera() {
@@ -501,6 +533,7 @@
             ).then(() => {
                 document.getElementById('scanner-status').innerText = "Scanner ativo! Aponte para um código de barras.";
                 document.getElementById('camera-permission-error').classList.add('hidden');
+                permissionDenied = false; // Permissão concedida com sucesso
                 
                 // Verificar recursos disponíveis e ajustar a interface
                 html5QrCode.getRunningTrackCapabilities()
@@ -525,13 +558,13 @@
                 console.error("Erro ao iniciar o scanner:", err);
                 document.getElementById('scanner-status').innerText = "Erro: " + err.message;
                 
-                // Mostrar o erro de permissão de câmera
-                document.getElementById('camera-permission-error').classList.remove('hidden');
-                permissionDenied = true;
-                
-                // Se for erro de permissão, não mostrar o alerta
-                if (!err.message.includes("permission")) {
-                    alert("Não foi possível acessar a câmera. Verifique as instruções na tela.");
+                // Apenas mostrar erro de permissão se realmente for um problema de permissão
+                if (err.name === 'NotAllowedError' || err.message.includes('Permission denied') || err.message.includes('permission')) {
+                    document.getElementById('camera-permission-error').classList.remove('hidden');
+                    permissionDenied = true;
+                } else {
+                    // Para outros erros, mostrar um alerta
+                    alert("Não foi possível acessar a câmera. Erro: " + err.message);
                 }
             });
         }
@@ -799,6 +832,13 @@
                         initScanner();
                     }
                 });
+        }
+        
+        // Adicionar uma função para solicitar novamente a permissão da câmera
+        function reRequestCameraPermission() {
+            permissionDenied = false;
+            document.getElementById('camera-permission-error').classList.add('hidden');
+            initScanner();
         }
     </script>
 </body>
