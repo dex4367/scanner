@@ -5,7 +5,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Servir arquivos estáticos
-app.use(express.static('./'));
+app.use(express.static(__dirname));
 
 // Detectar o IP local para acesso por outros dispositivos
 function getLocalIP() {

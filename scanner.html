@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#00843D">
+    <title>BR Mania - Scanner de Produtos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #00843D;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .header h1 {
+            margin: 0;
+            padding: 0;
+            font-size: 24px;
+        }
+        .logo {
+            max-width: 180px;
+            margin-bottom: 10px;
+        }
+        .back-button {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        .button {
+            background-color: #00843D;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 6px;
+            width: 100%;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button:hover {
+            background-color: #00692f;
+        }
+        .button i {
+            margin-right: 10px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .scanner-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .scan-region {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 250px;
+            height: 100px;
+            transform: translate(-50%, -50%);
+            border: 2px solid #00843D;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            z-index: 10;
+        }
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #00843D;
+            top: 50%;
+            animation: scanAnimation 2s linear infinite;
+        }
+        @keyframes scanAnimation {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="index.html" class="back-button">
+            <i class="material-icons">arrow_back</i>
+        </a>
+        <img src="https://www.brmania.com.br/wp-content/uploads/2023/01/logo-br-mania-1.png" alt="BR Mania" class="logo">
+        <h1>Escaneamento de Produtos</h1>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>Scanner de Código de Barras</h2>
+            
+            <div class="scanner-container" id="scanner">
+                <div class="scan-region"></div>
+                <div class="scan-line"></div>
+                <video id="preview" width="100%" height="100%"></video>
+            </div>
+            
+            <div class="status" id="scanner-status">
+                Aponte a câmera para o código de barras do produto
+            </div>
+            
+            <button class="button" id="manual-btn">
+                <i class="material-icons">edit</i> Entrada Manual
+            </button>
+            
+            <div class="form-group hidden" id="manual-input">
+                <label for="barcode-input">Digite o código de barras:</label>
+                <input type="text" id="barcode-input" placeholder="Ex: 7891234567890">
+                <button class="button" id="submit-manual">
+                    <i class="material-icons">check</i> Confirmar
+                </button>
+            </div>
+        </div>
+        
+        <!-- Formulário do produto (aparece após escanear) -->
+        <div class="card hidden" id="product-form">
+            <h2>Dados do Produto</h2>
+            
+            <div class="form-group">
+                <label for="product-code">Código de barras:</label>
+                <input type="text" id="product-code" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="product-name">Nome do produto:</label>
+                <input type="text" id="product-name" placeholder="Digite o nome do produto">
+            </div>
+            
+            <div class="form-group">
+                <label for="expiry-date">Data de validade:</label>
+                <input type="date" id="expiry-date">
+            </div>
+            
+            <button class="button" id="save-btn">
+                <i class="material-icons">save</i> Salvar Produto
+            </button>
+            
+            <button class="button" id="cancel-btn" style="background-color: #777;">
+                <i class="material-icons">close</i> Cancelar
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const scannerContainer = document.getElementById('scanner');
+            const scannerStatus = document.getElementById('scanner-status');
+            const manualBtn = document.getElementById('manual-btn');
+            const manualInput = document.getElementById('manual-input');
+            const barcodeInput = document.getElementById('barcode-input');
+            const submitManual = document.getElementById('submit-manual');
+            const productForm = document.getElementById('product-form');
+            const productCode = document.getElementById('product-code');
+            const productName = document.getElementById('product-name');
+            const expiryDate = document.getElementById('expiry-date');
+            const saveBtn = document.getElementById('save-btn');
+            const cancelBtn = document.getElementById('cancel-btn');
+            
+            // Iniciar o scanner
+            initScanner();
+            
+            // Alternar para entrada manual
+            manualBtn.addEventListener('click', function() {
+                manualInput.classList.toggle('hidden');
+                this.classList.toggle('hidden');
+            });
+            
+            // Enviar código manual
+            submitManual.addEventListener('click', function() {
+                const code = barcodeInput.value.trim();
+                if (code) {
+                    processBarcode(code);
+                } else {
+                    alert('Por favor, digite um código de barras válido');
+                }
+            });
+            
+            // Salvar produto
+            saveBtn.addEventListener('click', function() {
+                const name = productName.value.trim();
+                const expiry = expiryDate.value;
+                
+                if (!name) {
+                    alert('Por favor, digite o nome do produto');
+                    return;
+                }
+                
+                if (!expiry) {
+                    alert('Por favor, selecione a data de validade');
+                    return;
+                }
+                
+                // Simular salvamento
+                alert('Produto salvo com sucesso!');
+                
+                // Redirecionar para a lista de produtos
+                window.location.href = 'produtos.html';
+            });
+            
+            // Cancelar
+            cancelBtn.addEventListener('click', function() {
+                productForm.classList.add('hidden');
+                scannerContainer.classList.remove('hidden');
+                scannerStatus.classList.remove('hidden');
+                manualBtn.classList.remove('hidden');
+                manualInput.classList.add('hidden');
+                
+                // Reiniciar scanner
+                initScanner();
+            });
+            
+            // Função para inicializar o scanner
+            function initScanner() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: document.querySelector('#preview'),
+                            constraints: {
+                                width: 640,
+                                height: 480,
+                                facingMode: "environment"
+                            },
+                        },
+                        decoder: {
+                            readers: ["ean_reader", "ean_8_reader", "code_128_reader"]
+                        }
+                    }, function(err) {
+                        if (err) {
+                            scannerStatus.textContent = "Erro ao iniciar a câmera: " + err;
+                            return;
+                        }
+                        Quagga.start();
+                    });
+                    
+                    Quagga.onDetected(function(result) {
+                        const code = result.codeResult.code;
+                        Quagga.stop();
+                        processBarcode(code);
+                    });
+                } else {
+                    scannerStatus.textContent = "Seu navegador não suporta acesso à câmera";
+                }
+            }
+            
+            // Processar código de barras escaneado
+            function processBarcode(code) {
+                // Preencher formulário do produto
+                productCode.value = code;
+                
+                // Mockando nome de produto com base no código
+                if (code.startsWith('789')) {
+                    productName.value = 'Produto Brasileiro';
+                } else if (code.startsWith('77')) {
+                    productName.value = 'Bebida';
+                } else {
+                    productName.value = '';
+                }
+                
+                // Esconder scanner e mostrar formulário
+                scannerContainer.classList.add('hidden');
+                scannerStatus.classList.add('hidden');
+                manualBtn.classList.add('hidden');
+                manualInput.classList.add('hidden');
+                productForm.classList.remove('hidden');
+                
+                // Definir data padrão de validade (3 meses a partir de hoje)
+                const today = new Date();
+                today.setMonth(today.getMonth() + 3);
+                expiryDate.valueAsDate = today;
+            }
+        });
+    </script>
+</body>
+</html> 
