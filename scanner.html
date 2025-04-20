@@ -358,6 +358,21 @@
             <button class="button" id="cancel-btn" style="background-color: #777;">
                 <i class="material-icons">close</i> Cancelar
             </button>
+            
+            <button class="button" id="add-to-catalog-btn" style="background-color: #ff6b00; margin-top: 10px; display: none;">
+                <i class="material-icons">add_circle</i> Adicionar ao Catálogo Local
+            </button>
+        </div>
+        
+        <div class="card" id="debug-panel" style="display: none;">
+            <h2>Painel de Debug</h2>
+            <div class="form-group">
+                <label for="debug-code">Código de teste:</label>
+                <input type="text" id="debug-code" placeholder="Ex: 7891000053508">
+            </div>
+            <button class="button" id="debug-test-btn">
+                <i class="material-icons">bug_report</i> Testar Código
+            </button>
         </div>
     </div>
 
@@ -384,6 +399,7 @@
             
             // Banco de dados de produtos conhecidos
             const knownProducts = {
+                // Produtos alimentícios
                 "7891000053508": "Leite Condensado Moça Nestlé Lata 395g",
                 "7896029000016": "Leite Longa Vida Integral Elegê 1L",
                 "7891000100103": "Achocolatado Nescau 2.0 Lata 400g",
@@ -399,20 +415,73 @@
                 "7891141014529": "Refrigerante Coca-Cola 2L",
                 "7891149201003": "Biscoito Recheado Oreo 90g", 
                 "7896276060024": "Margarina Qualy 500g",
-                "7891150037373": "Café em Pó Pilão Tradicional 500g",
-                "7891021006001": "Desodorante Rexona Men Active 150ml",
+                "7894000010014": "Água Mineral sem Gás Crystal 510ml",
+                // Produtos de higiene e limpeza
                 "7891010577100": "Sabonete Dove Original 90g",
                 "7500435146425": "Creme Dental Colgate Total 12 90g",
                 "7891024132555": "Papel Higiênico Neve Folha Dupla 12 rolos",
                 "7896094910157": "Sabão em Pó Omo Multiação 1.6kg",
-                "7894000010014": "Água Mineral sem Gás Crystal 510ml",
+                "7891020000197": "Detergente Líquido Ypê 500ml",
+                // Bebidas
+                "7891991000833": "Cerveja Skol Lata 350ml",
+                "7894900011517": "Refrigerante Coca-Cola Lata 350ml",
                 "7896072042604": "Cerveja Brahma Lata 350ml",
+                "7891991010627": "Cerveja Original Lata 350ml",
+                "7891991011518": "Cerveja Antarctica Lata 350ml",
+                "7896008102992": "Suco Del Valle 1L",
+                // Outros populares
                 "7891010045326": "Creme para Pentear Seda 295ml",
-                "7891020000197": "Detergente Líquido Ypê 500ml"
+                "7896090401198": "Amaciante Comfort 1L",
+                "7896004006413": "Molho de Tomate Pomarola 340g",
+                "7896015511375": "Biscoito Passatempo 130g",
+                "7622300991296": "Biscoito Trakinas 126g",
+                "7896051129813": "Macarrão Instantâneo Miojo Galinha 85g",
+                "7891962037363": "Chocolate Lacta ao Leite 90g",
+                "7891962037424": "Chocolate Lacta Meio Amargo 90g",
+                "7891991015639": "Cerveja Budweiser 350ml",
+                // Produtos BR Mania
+                "7896007548613": "Sanduíche Natural BR Mania",
+                "7896007548620": "Pão de Queijo BR Mania",
+                "7898524303015": "Café BR Mania P 180ml",
+                "7898524303022": "Café BR Mania M 300ml",
+                "7898524303039": "Café BR Mania G 400ml"
             };
             
             // Iniciar o scanner
             initScanner();
+            
+            // Botão para mostrar painel de debug (apenas em desenvolvimento)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                document.getElementById('debug-panel').style.display = 'block';
+                document.getElementById('debug-test-btn').addEventListener('click', function() {
+                    const code = document.getElementById('debug-code').value.trim();
+                    if (code) {
+                        processBarcode(code);
+                    } else {
+                        alert('Digite um código de barras para testar');
+                    }
+                });
+                
+                // Mostrar botão de adicionar ao catálogo
+                document.getElementById('add-to-catalog-btn').style.display = 'flex';
+                document.getElementById('add-to-catalog-btn').addEventListener('click', function() {
+                    const code = productCode.value;
+                    const name = productName.value;
+                    if (code && name) {
+                        try {
+                            let localCatalog = JSON.parse(localStorage.getItem('localCatalog') || '{}');
+                            localCatalog[code] = name;
+                            localStorage.setItem('localCatalog', JSON.stringify(localCatalog));
+                            alert(`Produto "${name}" adicionado ao catálogo local com código ${code}`);
+                        } catch (e) {
+                            console.error('Erro ao adicionar ao catálogo:', e);
+                            alert('Erro ao adicionar ao catálogo local');
+                        }
+                    } else {
+                        alert('Código e nome são obrigatórios');
+                    }
+                });
+            }
             
             // Alternar para entrada manual
             manualBtn.addEventListener('click', function() {
@@ -680,7 +749,7 @@
                 // Mostrar carregamento
                 productName.disabled = true;
                 productName.value = 'Buscando informações do produto...';
-                scannerStatus.textContent = `Consultando para o código: ${code}`;
+                scannerStatus.textContent = `Processando código: ${code}`;
                 
                 console.log('Processando código de barras:', code);
                 
@@ -688,26 +757,72 @@
                 if (knownProducts[code]) {
                     console.log('Produto encontrado no banco de dados local');
                     productName.value = knownProducts[code];
-                    scannerStatus.textContent = 'Produto encontrado!';
+                    scannerStatus.textContent = 'Produto encontrado no catálogo!';
                     productName.disabled = false;
-                } else {
-                    console.log('Produto não encontrado localmente, tentando buscar online...');
-                    // Tentar buscar usando a API do Gemini
-                    fetchProductNameWithGemini(code)
-                        .then(productNameResult => {
-                            productName.value = productNameResult || `Produto ${code.substring(0, 6)}`;
-                            scannerStatus.textContent = productNameResult ? 'Produto encontrado!' : 'Nome gerado automaticamente';
-                            productName.disabled = false;
-                        })
-                        .catch(error => {
-                            console.error('Erro ao buscar nome do produto:', error);
-                            productName.value = `Produto ${code.substring(0, 6)}`;
-                            productName.disabled = false;
-                            scannerStatus.textContent = 'Usando nome padrão';
-                        });
+                    showProductForm();
+                    return;
                 }
                 
+                // Verificar no catálogo local personalizado
+                try {
+                    const localCatalog = JSON.parse(localStorage.getItem('localCatalog') || '{}');
+                    if (localCatalog[code]) {
+                        console.log('Produto encontrado no catálogo local');
+                        productName.value = localCatalog[code];
+                        scannerStatus.textContent = 'Produto encontrado no seu catálogo!';
+                        productName.disabled = false;
+                        showProductForm();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Erro ao verificar catálogo local:', e);
+                }
+                
+                // Verificar se já encontramos esse produto anteriormente
+                try {
+                    const tempProducts = JSON.parse(localStorage.getItem('tempProducts') || '{}');
+                    if (tempProducts[code]) {
+                        console.log('Produto encontrado em cache local');
+                        productName.value = tempProducts[code];
+                        scannerStatus.textContent = 'Produto encontrado no histórico!';
+                        productName.disabled = false;
+                        
+                        // Esconder scanner e mostrar formulário
+                        showProductForm();
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Erro ao verificar cache:', e);
+                }
+                
+                console.log('Produto não encontrado localmente, tentando buscar online...');
+                // Tentar buscar usando a API do Gemini
+                scannerStatus.textContent = `Consultando banco de dados online...`;
+                
+                fetchProductNameWithGemini(code)
+                    .then(productNameResult => {
+                        if (productNameResult) {
+                            productName.value = productNameResult;
+                            scannerStatus.textContent = 'Produto identificado com sucesso!';
+                        } else {
+                            productName.value = `Produto ${code.substring(0, 3)}-${code.substring(3, 7)}`;
+                            scannerStatus.textContent = 'Nome gerado automaticamente';
+                        }
+                        productName.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar nome do produto:', error);
+                        productName.value = `Produto ${code.substring(0, 3)}-${code.substring(3, 7)}`;
+                        productName.disabled = false;
+                        scannerStatus.textContent = 'Usando nome temporário - edite se necessário';
+                    });
+                
                 // Esconder scanner e mostrar formulário
+                showProductForm();
+            }
+            
+            // Função auxiliar para mostrar o formulário de produto
+            function showProductForm() {
                 scannerContainer.classList.add('hidden');
                 scannerStatus.classList.remove('hidden');
                 manualBtn.classList.add('hidden');
@@ -721,29 +836,72 @@
             // Função para buscar nome do produto usando a API do Gemini
             async function fetchProductNameWithGemini(barcode) {
                 try {
+                    scannerStatus.textContent = "Consultando API Gemini...";
+                    
                     // Inicializa a API
                     const genAI = new googleGenerativeAI.GoogleGenerativeAI(API_KEY);
                     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
                     
-                    // Criar o prompt
-                    const prompt = `Eu tenho um produto com o código de barras ${barcode}. 
-                    Por favor, forneça informações sobre este produto, como nome do produto.
-                    Responda apenas com o nome do produto, sem informações adicionais. 
-                    Se não souber o nome exato, faça uma estimativa baseada em produtos similares.`;
+                    // Criar o prompt - melhorado para obter respostas mais precisas
+                    const prompt = `Você é um especialista em produtos de varejo brasileiro.
+                    
+                    Eu tenho um produto com o código de barras ${barcode}.
+                    
+                    Por favor, identifique este produto brasileiro com base no código de barras. 
+                    
+                    Responda APENAS com o nome do produto e sua embalagem/tamanho, sem qualquer explicação adicional, ponto final ou aspas. Exemplo correto: "Leite Condensado Moça Nestlé Lata 395g"
+                    
+                    Se você não tiver certeza, tente deduzir um nome plausível baseado no código, pois códigos brasileiros frequentemente começam com 789.`;
                     
                     console.log('Enviando prompt para o Gemini:', prompt);
                     
-                    // Fazer a requisição
-                    const result = await model.generateContent(prompt);
+                    // Fazer a requisição com timeout
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error("Timeout ao consultar API")), 6000)
+                    );
+                    
+                    const resultPromise = model.generateContent(prompt);
+                    
+                    // Usar Promise.race para implementar o timeout
+                    const result = await Promise.race([resultPromise, timeoutPromise]);
                     const response = await result.response;
-                    const text = response.text().trim();
+                    let text = response.text().trim();
+                    
+                    // Limpar a resposta - remover aspas, pontos finais e ajustar o formato
+                    text = text.replace(/^["']|["']$/g, '').replace(/\.$/g, '');
                     
                     console.log('Resposta recebida do Gemini:', text);
                     
-                    return text;
+                    // Verificar se a resposta faz sentido (tem pelo menos algumas palavras)
+                    if (text && text.split(' ').length > 1) {
+                        // Armazenar temporariamente o produto encontrado para consultas futuras
+                        try {
+                            let tempProducts = JSON.parse(localStorage.getItem('tempProducts') || '{}');
+                            tempProducts[barcode] = text;
+                            localStorage.setItem('tempProducts', JSON.stringify(tempProducts));
+                        } catch (e) {
+                            console.error('Erro ao salvar produto em cache:', e);
+                        }
+                        return text;
+                    } else {
+                        throw new Error("Resposta inválida da API");
+                    }
                 } catch (error) {
                     console.error('Erro ao consultar API Gemini:', error);
-                    return null;
+                    
+                    // Verificar se há um produto em cache
+                    try {
+                        const tempProducts = JSON.parse(localStorage.getItem('tempProducts') || '{}');
+                        if (tempProducts[barcode]) {
+                            console.log('Produto encontrado em cache local');
+                            return tempProducts[barcode];
+                        }
+                    } catch (e) {
+                        console.error('Erro ao buscar cache:', e);
+                    }
+                    
+                    // Se chegou aqui, gerar um nome genérico mas significativo
+                    return `Produto ${barcode.substring(0, 3)}-${barcode.substring(3, 7)}`;
                 }
             }
         });
