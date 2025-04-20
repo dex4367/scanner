@@ -500,14 +500,28 @@
                 // Preencher formulário do produto
                 productCode.value = code;
                 
-                // Mockando nome de produto com base no código
-                if (code.startsWith('789')) {
-                    productName.value = 'Produto Brasileiro';
-                } else if (code.startsWith('77')) {
-                    productName.value = 'Bebida';
-                } else {
+                // Mostrar carregamento
+                productName.disabled = true;
+                productName.value = 'Buscando informações do produto...';
+                
+                // Buscar informações do produto usando a API do Gemini
+                fetch('/api/product-info', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ barcode: code }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    productName.value = data.name || '';
+                    productName.disabled = false;
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar informações do produto:', error);
                     productName.value = '';
-                }
+                    productName.disabled = false;
+                });
                 
                 // Esconder scanner e mostrar formulário
                 scannerContainer.classList.add('hidden');
@@ -516,16 +530,8 @@
                 manualInput.classList.add('hidden');
                 productForm.classList.remove('hidden');
                 
-                // Definir data padrão de validade (3 meses a partir de hoje)
-                const today = new Date();
-                today.setMonth(today.getMonth() + 3);
-                
-                // Formatar a data para o formato YYYY-MM-DD
-                const yyyy = today.getFullYear();
-                const mm = String(today.getMonth() + 1).padStart(2, '0');
-                const dd = String(today.getDate()).padStart(2, '0');
-                
-                expiryDate.value = `${yyyy}-${mm}-${dd}`;
+                // Deixar a data de validade vazia para que o usuário defina manualmente
+                expiryDate.value = '';
             }
         });
     </script>

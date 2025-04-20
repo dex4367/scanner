@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, Platform } from 'react-native';
 import { Text, Button, TextInput, Snackbar, Portal, Dialog, FAB, ActivityIndicator } from 'react-native-paper';
 import { BarCodeScanner } from 'expo-barcode-scanner';
 import { useNavigation } from '@react-navigation/native';
 import * as SQLite from 'react-native-sqlite-storage';
+import { Camera } from 'expo-camera';
+import * as FileSystem from 'expo-file-system';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Inicializar o Gemini AI com a chave da API
+const genAI = new GoogleGenerativeAI('AIzaSyDI9sEOatq9CYjFjxO5fzsvN3knkD6_omc');
 
 const ScannerScreen = () => {
   const navigation = useNavigation();
@@ -19,7 +26,9 @@ const ScannerScreen = () => {
   const [selectedTab, setSelectedTab] = useState('scanner');
   const [isSearchingProduct, setIsSearchingProduct] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const db = SQLite.openDatabase({ name: 'products.db' });
+  const cameraRef = useRef<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -46,30 +55,36 @@ const ScannerScreen = () => {
     setIsSearchingProduct(true);
     setErrorMessage('');
     
-    // Simular busca do nome do produto por IA
-    setTimeout(() => {
-      // Mockando nomes de produtos com base no código de barras
-      let productName = '';
+    // Buscar informações do produto usando a API do Gemini
+    searchProductInfo(data);
+  };
+
+  // Nova função para buscar informações do produto com o Gemini
+  const searchProductInfo = async (barcode: string) => {
+    try {
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       
-      if (data.includes('7891') || data.startsWith('789')) {
-        productName = 'Produto Brasileiro';
-      } else if (data.includes('4902') || data.startsWith('490')) {
-        productName = 'Produto Japonês';
-      } else if (data.includes('9780') || data.startsWith('978')) {
-        productName = 'Livro';
-      } else {
-        productName = `Produto ${data.substring(0, 6)}`;
+      const prompt = `Eu tenho um produto com o código de barras ${barcode}. 
+      Por favor, forneça informações sobre este produto, como nome do produto.
+      Responda apenas com o nome do produto, sem informações adicionais.`;
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      if (text && text.length > 0) {
+        setProductName(text.trim());
       }
-      
-      setProductName(productName);
+    } catch (error) {
+      console.error('Erro ao buscar informações do produto:', error);
+    } finally {
       setIsSearchingProduct(false);
-      setShowAddDialog(true);
-    }, 2000);
+    }
   };
 
   const saveProduct = async () => {
     if (!barcode || !productName) {
-      showSnackbar('Preencha todos os campos');
+      showSnackbar('Por favor, preencha todos os campos!');
       return;
     }
 
@@ -125,8 +140,11 @@ const ScannerScreen = () => {
     setSnackbarVisible(true);
   };
 
-  const onExpirationDateChange = (newDate: Date) => {
-    setExpirationDate(newDate);
+  const onExpirationDateChange = (event: any, newDate?: Date) => {
+    setShowDatePicker(false);
+    if (newDate) {
+      setExpirationDate(newDate);
+    }
   };
 
   if (hasCameraPermission === null) {
@@ -237,11 +255,7 @@ const ScannerScreen = () => {
           
           <TouchableOpacity 
             style={styles.datePickerButton}
-            onPress={() => {
-              // Aqui precisaríamos abrir um seletor de data
-              // Como não temos o DateTimePicker, podemos usar uma solução alternativa
-              // Por simplicidade, mantemos como está
-            }}
+            onPress={() => setShowDatePicker(true)}
           >
             <Text style={styles.datePickerLabel}>Data de Validade:</Text>
             <Text style={styles.dateText}>
@@ -250,6 +264,15 @@ const ScannerScreen = () => {
               {expirationDate.getFullYear()}
             </Text>
           </TouchableOpacity>
+          
+          {showDatePicker && (
+            <DateTimePicker
+              value={expirationDate}
+              mode="date"
+              display="default"
+              onChange={onExpirationDateChange}
+            />
+          )}
           
           <Button
             mode="contained"
@@ -289,9 +312,7 @@ const ScannerScreen = () => {
                 
                 <TouchableOpacity 
                   style={styles.datePickerButton}
-                  onPress={() => {
-                    // Aqui abriríamos um DatePicker se estivesse disponível
-                  }}
+                  onPress={() => setShowDatePicker(true)}
                 >
                   <Text style={styles.datePickerLabel}>Data de Validade:</Text>
                   <Text style={styles.dateText}>
@@ -300,6 +321,15 @@ const ScannerScreen = () => {
                     {expirationDate.getFullYear()}
                   </Text>
                 </TouchableOpacity>
+                
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={expirationDate}
+                    mode="date"
+                    display="default"
+                    onChange={onExpirationDateChange}
+                  />
+                )}
               </>
             )}
           </Dialog.Content>
