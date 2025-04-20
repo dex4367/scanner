@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scanner de Produtos</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@mui/material@5.0.0/dist/mui-material.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -89,6 +89,83 @@
         .hidden {
             display: none;
         }
+        .https-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        #flash-btn {
+            background-color: #f44336;
+            margin-top: 10px;
+        }
+        #switch-camera-btn {
+            background-color: #9c27b0;
+            margin-top: 10px;
+        }
+        #scanner-status {
+            margin-top: 10px;
+            padding: 8px;
+            background-color: #e0f7fa;
+            border-radius: 4px;
+            text-align: center;
+        }
+        /* Adicionando marcadores para auxiliar no escaneamento */
+        #scan-region-highlight {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            transform: translate(-50%, -50%);
+            border: 2px solid #ff0000;
+            box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            z-index: 10;
+            pointer-events: none;
+        }
+        #reader {
+            position: relative;
+            overflow: hidden;
+        }
+        .scan-animation {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, rgba(0,0,0,0), #ff0000, rgba(0,0,0,0));
+            top: 50%;
+            left: 0;
+            z-index: 11;
+            pointer-events: none;
+            animation: scanAnimation 2s infinite;
+        }
+        @keyframes scanAnimation {
+            0% { top: 20%; }
+            50% { top: 80%; }
+            100% { top: 20%; }
+        }
+        #manual-controls {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #capture-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #upload-btn {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        #file-input {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -97,18 +174,23 @@
     </div>
     
     <div class="container">
+        <div id="https-warning" class="https-warning hidden">
+            <strong>Aviso!</strong> O acesso à câmera só funciona em conexões seguras (HTTPS). 
+            Use este aplicativo em um servidor seguro ou em localhost.
+        </div>
+        
         <!-- Home Screen -->
         <div id="home-screen">
             <button class="button" onclick="showScreen('scanner-screen')">
-                <span class="material-icons">camera_alt</span>
+                <span class="material-icons">camera_alt</span>&nbsp;
                 Escanear Produto
             </button>
             <button class="button" onclick="showScreen('products-screen')">
-                <span class="material-icons">list</span>
+                <span class="material-icons">list</span>&nbsp;
                 Produtos Cadastrados
             </button>
             <button class="button" onclick="showScreen('report-screen')">
-                <span class="material-icons">description</span>
+                <span class="material-icons">description</span>&nbsp;
                 Gerar Relatório
             </button>
         </div>
@@ -118,7 +200,31 @@
             <div class="card">
                 <h2>Escanear Código de Barras</h2>
                 <div class="scanner-container">
-                    <div id="reader"></div>
+                    <div id="reader">
+                        <div id="scan-region-highlight"></div>
+                        <div class="scan-animation"></div>
+                    </div>
+                    <div id="scanner-status">Iniciando câmera...</div>
+                    <button id="flash-btn" class="button" onclick="toggleFlash()" style="display: none;">
+                        <span class="material-icons">flash_on</span>&nbsp;
+                        Ligar Flash
+                    </button>
+                    <button id="switch-camera-btn" class="button" onclick="switchCamera()" style="display: none;">
+                        <span class="material-icons">flip_camera_android</span>&nbsp;
+                        Trocar Câmera
+                    </button>
+                    
+                    <div id="manual-controls">
+                        <button id="capture-btn" class="button" onclick="captureImage()">
+                            <span class="material-icons">photo_camera</span>&nbsp;
+                            Tirar Foto
+                        </button>
+                        <button id="upload-btn" class="button" onclick="document.getElementById('file-input').click()">
+                            <span class="material-icons">upload_file</span>&nbsp;
+                            Carregar Imagem
+                        </button>
+                        <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+                    </div>
                 </div>
                 <div id="scanner-result" class="hidden">
                     <div class="form-group">
@@ -162,9 +268,14 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/html5-qrcode@2.0.9/dist/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
     <script>
+        // Verificar se estamos em um contexto seguro (HTTPS)
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+            document.getElementById('https-warning').classList.remove('hidden');
+        }
+
         // Initialize IndexedDB
         let db;
         const request = indexedDB.open('ProductsDB', 1);
@@ -205,35 +316,182 @@
         }
         
         // Initialize the barcode scanner
-        let html5QrcodeScanner;
+        let html5QrCode;
+        let cameraId;
+        let isFlashOn = false;
+        let cameras = [];
+        let currentCameraIndex = 0;
         
         function initScanner() {
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear();
+            if (html5QrCode) {
+                html5QrCode.stop();
             }
             
             document.getElementById('scanner-result').classList.add('hidden');
+            document.getElementById('scanner-status').innerText = "Procurando câmeras...";
             
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader", 
-                { fps: 10, qrbox: 250 }, 
-                /* verbose= */ false
-            );
+            html5QrCode = new Html5Qrcode("reader");
             
-            html5QrcodeScanner.render(onScanSuccess);
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length) {
+                    cameras = devices;
+                    document.getElementById('scanner-status').innerText = `${devices.length} câmeras encontradas. Iniciando...`;
+                    
+                    if (devices.length > 1) {
+                        document.getElementById('switch-camera-btn').style.display = 'block';
+                    }
+                    
+                    cameraId = devices[0].id;
+                    startScanner();
+                } else {
+                    document.getElementById('scanner-status').innerText = "Nenhuma câmera encontrada!";
+                }
+            }).catch(err => {
+                console.log('Error getting cameras', err);
+                document.getElementById('scanner-status').innerText = "Erro ao acessar câmeras: " + err.message;
+            });
+        }
+        
+        function switchCamera() {
+            if (cameras.length <= 1) return;
+            
+            currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+            cameraId = cameras[currentCameraIndex].id;
+            
+            document.getElementById('scanner-status').innerText = `Trocando para câmera ${currentCameraIndex + 1}...`;
+            
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    startScanner();
+                }).catch(err => {
+                    console.error("Erro ao parar scanner:", err);
+                    startScanner();
+                });
+            }
+        }
+        
+        function startScanner() {
+            document.getElementById('scanner-status').innerText = "Iniciando scanner...";
+            
+            // Configuração avançada para melhor detecção
+            const config = { 
+                fps: 30,
+                qrbox: { width: 300, height: 300 },
+                aspectRatio: 1.0,
+                disableFlip: false, // Permitir detecção em qualquer orientação
+                formatsToSupport: [ 
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.DATA_MATRIX,
+                    Html5QrcodeSupportedFormats.AZTEC,
+                    Html5QrcodeSupportedFormats.ITF
+                ],
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                },
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [
+                    // Suporte a diferentes modos de escaneamento
+                    Html5QrcodeScanType.SCAN_TYPE_CAMERA,
+                    Html5QrcodeScanType.SCAN_TYPE_FILE
+                ]
+            };
+            
+            const cameraConfig = {
+                deviceId: cameraId,
+                // Configuração avançada da câmera
+                advanced: [{
+                    focusMode: "continuous", // Foco automático contínuo
+                    zoom: 0 // Sem zoom inicial
+                }]
+            };
+            
+            html5QrCode.start(
+                cameraConfig, 
+                config,
+                onScanSuccess,
+                onScanError
+            ).then(() => {
+                document.getElementById('scanner-status').innerText = "Scanner ativo! Aponte para um código de barras.";
+                
+                // Verificar recursos disponíveis e ajustar a interface
+                html5QrCode.getRunningTrackCapabilities()
+                    .then(capabilities => {
+                        console.log("Capacidades da câmera:", capabilities);
+                        if (capabilities.torch) {
+                            document.getElementById('flash-btn').style.display = 'block';
+                        }
+                        
+                        // Ajustar as configurações de foco e zoom se disponíveis
+                        if (capabilities.focusMode) {
+                            html5QrCode.applyVideoConstraints({
+                                advanced: [{
+                                    focusMode: "continuous"
+                                }]
+                            });
+                        }
+                    })
+                    .catch(err => console.error("Error checking camera capabilities:", err));
+            })
+            .catch(err => {
+                console.error("Erro ao iniciar o scanner:", err);
+                document.getElementById('scanner-status').innerText = "Erro: " + err.message;
+                alert("Não foi possível acessar a câmera. Verifique se você deu as permissões necessárias.");
+            });
+        }
+        
+        function toggleFlash() {
+            const flashBtn = document.getElementById('flash-btn');
+            isFlashOn = !isFlashOn;
+            
+            html5QrCode.applyVideoConstraints({
+                advanced: [{ torch: isFlashOn }]
+            }).then(() => {
+                if (isFlashOn) {
+                    flashBtn.innerHTML = '<span class="material-icons">flash_off</span>&nbsp;Desligar Flash';
+                    flashBtn.style.backgroundColor = '#4CAF50';
+                } else {
+                    flashBtn.innerHTML = '<span class="material-icons">flash_on</span>&nbsp;Ligar Flash';
+                    flashBtn.style.backgroundColor = '#f44336';
+                }
+            });
         }
         
         function onScanSuccess(decodedText) {
-            html5QrcodeScanner.clear();
+            // Play beep sound
+            try {
+                const beep = new Audio("data:audio/wav;base64,UklGRl9nT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YTs=");
+                beep.play();
+            } catch (e) {}
             
+            html5QrCode.stop();
+            
+            document.getElementById('scanner-status').innerText = "Código detectado!";
             document.getElementById('product-code').value = decodedText;
             document.getElementById('product-name').value = `Produto ${decodedText}`;
             document.getElementById('scanner-result').classList.remove('hidden');
         }
         
+        function onScanError(errorMessage) {
+            // Não mostrar erros de decodificação normais (acontecem quando não há código no campo de visão)
+            if (errorMessage.includes("No barcode or QR code detected")) {
+                return;
+            }
+            
+            console.log("Erro de escaneamento:", errorMessage);
+            // Atualizar o status apenas para erros importantes
+            if (!errorMessage.includes("Scanning")) {
+                document.getElementById('scanner-status').innerText = "Erro: " + errorMessage;
+            }
+        }
+        
         function resetScanner() {
             document.getElementById('scanner-result').classList.add('hidden');
-            initScanner();
+            startScanner();
         }
         
         // Product management
@@ -377,9 +635,83 @@
                 }
             };
         }
+        
+        // Capturar uma imagem manualmente
+        function captureImage() {
+            if (!html5QrCode) return;
+            
+            document.getElementById('scanner-status').innerText = "Capturando imagem...";
+            
+            // Parar o scanner para tirar uma foto única
+            html5QrCode.pause().then(() => {
+                // Obter o frame atual como uma imagem
+                html5QrCode.getRunningTrackSettings()
+                    .then(settings => {
+                        // Tentar escanear o frame atual
+                        html5QrCode.scanFrame()
+                            .then(result => {
+                                // Se encontrou um código
+                                onScanSuccess(result);
+                            })
+                            .catch(error => {
+                                // Se não encontrou, continuar o scanner
+                                document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem. Tentando novamente...";
+                                html5QrCode.resume();
+                            });
+                    })
+                    .catch(err => {
+                        console.error("Erro ao capturar frame:", err);
+                        document.getElementById('scanner-status').innerText = "Erro ao capturar imagem. Tentando novamente...";
+                        html5QrCode.resume();
+                    });
+            });
+        }
+        
+        // Processar arquivo de imagem selecionado
+        function handleFileSelect(event) {
+            if (event.target.files.length === 0) {
+                return;
+            }
+            
+            const file = event.target.files[0];
+            document.getElementById('scanner-status').innerText = "Analisando imagem...";
+            
+            // Parar a câmera temporariamente
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    // Escanear a imagem selecionada
+                    Html5Qrcode.scanFile(file, true)
+                        .then(decodedText => {
+                            // Se encontrou um código
+                            document.getElementById('scanner-status').innerText = "Código encontrado na imagem!";
+                            document.getElementById('product-code').value = decodedText;
+                            document.getElementById('product-name').value = `Produto ${decodedText}`;
+                            document.getElementById('scanner-result').classList.remove('hidden');
+                        })
+                        .catch(err => {
+                            // Se não encontrou, reiniciar o scanner
+                            document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem. Reiniciando scanner...";
+                            initScanner();
+                        });
+                }).catch(err => {
+                    console.error("Erro ao parar scanner:", err);
+                    document.getElementById('scanner-status').innerText = "Erro ao processar imagem. Reiniciando scanner...";
+                    initScanner();
+                });
+            } else {
+                // Se o scanner não estiver ativo, apenas tentar escanear a imagem
+                Html5Qrcode.scanFile(file, true)
+                    .then(decodedText => {
+                        document.getElementById('scanner-status').innerText = "Código encontrado na imagem!";
+                        document.getElementById('product-code').value = decodedText;
+                        document.getElementById('product-name').value = `Produto ${decodedText}`;
+                        document.getElementById('scanner-result').classList.remove('hidden');
+                    })
+                    .catch(err => {
+                        document.getElementById('scanner-status').innerText = "Nenhum código encontrado na imagem.";
+                    });
+            }
+        }
     </script>
-    
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </body>
 </html> 
