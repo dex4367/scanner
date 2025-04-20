@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * blob: 'self' https: data:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
+  <title>Busca de Produto por Código</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    h1 {
+      color: #00843D;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #00843D;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      width: 100%;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #resultado {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      background-color: #f1f1f1;
+      font-size: 16px;
+      min-height: 20px;
+    }
+    .loading {
+      text-align: center;
+    }
+    .error {
+      color: #d9534f;
+    }
+    .success {
+      color: #00843D;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Consulta de Produto</h1>
+
+    <input
+      type="text"
+      id="codigoInput"
+      placeholder="Digite ou escaneie o código de barras"
+      pattern="[0-9]*" 
+      inputmode="numeric"
+    />
+    <button id="buscarBtn">Buscar Produto</button>
+
+    <div id="resultado"></div>
+  </div>
+
+  <script>
+    document
+      .getElementById("buscarBtn")
+      .addEventListener("click", buscarProduto);
+      
+    document
+      .getElementById("codigoInput")
+      .addEventListener("keyup", function(event) {
+        if (event.key === "Enter") {
+          buscarProduto();
+        }
+      });
+      
+    async function buscarProduto() {
+      const codigo = document.getElementById("codigoInput").value.trim();
+      const resultadoEl = document.getElementById("resultado");
+
+      if (!codigo) {
+        resultadoEl.textContent = "Por favor, insira um código válido.";
+        resultadoEl.className = "error";
+        return;
+      }
+
+      resultadoEl.textContent = "Buscando...";
+      resultadoEl.className = "loading";
+
+      try {
+        const res = await fetch(
+          `https://brasilapi.com.br/api/codigos-barra/v1/${codigo}`
+        );
+
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (data && data.produto) {
+          resultadoEl.innerHTML = `<strong>Produto:</strong> ${data.produto}<br>
+                                 <strong>Marca:</strong> ${data.marca || "N/D"}`;
+          resultadoEl.className = "success";
+        } else {
+          resultadoEl.textContent = "Produto não encontrado.";
+          resultadoEl.className = "error";
+        }
+      } catch (err) {
+        console.error(err);
+        resultadoEl.textContent = "Erro ao consultar a API.";
+        resultadoEl.className = "error";
+        
+        // Tentar a segunda API como fallback
+        try {
+          resultadoEl.textContent = "Tentando API alternativa...";
+          
+          // Tentar API alternativa
+          const alternativeRes = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${codigo}`, {
+            method: 'GET',
+            headers: {
+              'X-Cosmos-Token': 'g3FQ0LCr8G05pMOiDM9YyQ',
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (alternativeRes.ok) {
+            const alternativeData = await alternativeRes.json();
+            if (alternativeData && alternativeData.description) {
+              resultadoEl.innerHTML = `<strong>Produto:</strong> ${alternativeData.description}<br>
+                                     <strong>Marca:</strong> ${alternativeData.brand ? alternativeData.brand.name : "N/D"}`;
+              resultadoEl.className = "success";
+            } else {
+              resultadoEl.textContent = "Produto não encontrado em nenhuma API.";
+              resultadoEl.className = "error";
+            }
+          } else {
+            resultadoEl.textContent = "Produto não encontrado em nenhuma API.";
+            resultadoEl.className = "error";
+          }
+        } catch (fallbackErr) {
+          console.error('Erro na API de fallback:', fallbackErr);
+          resultadoEl.textContent = "Não foi possível encontrar o produto em nenhuma fonte.";
+          resultadoEl.className = "error";
+        }
+      }
+    }
+  </script>
+</body>
+</html> 
