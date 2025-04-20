@@ -6,6 +6,7 @@
     <title>Scanner de Produtos</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -192,6 +193,33 @@
         .permission-steps li {
             margin-bottom: 8px;
         }
+        
+        #expiry-capture-btn {
+            background-color: #009688;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        #expiry-preview {
+            width: 100%;
+            height: 200px;
+            background-color: #f5f5f5;
+            border: 1px dashed #ccc;
+            margin: 10px 0;
+            text-align: center;
+            line-height: 200px;
+            display: none;
+        }
+        
+        .recognition-status {
+            background-color: #e3f2fd;
+            color: #0d47a1;
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -280,6 +308,14 @@
                     <div class="form-group">
                         <label for="expiry-date">Data de Validade</label>
                         <input type="date" id="expiry-date">
+                        <button id="expiry-capture-btn" class="button" onclick="captureExpiryDate()">
+                            <span class="material-icons">date_range</span>&nbsp;
+                            Capturar Data de Validade
+                        </button>
+                    </div>
+                    <div id="expiry-preview"></div>
+                    <div id="recognition-status" class="recognition-status" style="display: none;">
+                        Processando imagem...
                     </div>
                     <button class="button" onclick="saveProduct()">Salvar Produto</button>
                     <button class="button" onclick="resetScanner()">Escanear Novamente</button>
@@ -830,6 +866,221 @@
             permissionDenied = false;
             document.getElementById('camera-permission-error').classList.add('hidden');
             initScanner();
+        }
+        
+        // Adicionar função para capturar a data de validade
+        function captureExpiryDate() {
+            if (!html5QrCode) {
+                alert('É necessário iniciar a câmera primeiro');
+                return;
+            }
+            
+            document.getElementById('recognition-status').style.display = 'block';
+            document.getElementById('recognition-status').innerText = 'Preparando câmera...';
+            
+            // Reiniciar a câmera se já tiver sido parada
+            if (!html5QrCode._isScanning) {
+                try {
+                    initScanner();
+                    setTimeout(() => {
+                        captureAndRecognizeDate();
+                    }, 1500);
+                } catch (err) {
+                    console.error('Erro ao reiniciar câmera:', err);
+                    document.getElementById('recognition-status').innerText = 'Erro ao acessar câmera';
+                }
+            } else {
+                captureAndRecognizeDate();
+            }
+        }
+        
+        function captureAndRecognizeDate() {
+            document.getElementById('recognition-status').innerText = 'Capturando imagem...';
+            
+            try {
+                // Usar o elemento de vídeo diretamente para capturar a imagem
+                const videoElement = document.querySelector('#reader video');
+                
+                if (!videoElement) {
+                    document.getElementById('recognition-status').innerText = 'Câmera não encontrada';
+                    return;
+                }
+                
+                // Criar um canvas para capturar o frame de vídeo
+                const canvas = document.createElement('canvas');
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                
+                // Mostrar a imagem capturada no preview
+                const previewElement = document.getElementById('expiry-preview');
+                previewElement.style.display = 'block';
+                previewElement.innerHTML = '';
+                previewElement.appendChild(canvas);
+                
+                // Converter para imagem
+                const imageData = canvas.toDataURL('image/jpeg');
+                
+                // Processar com Tesseract OCR
+                document.getElementById('recognition-status').innerText = 'Reconhecendo texto...';
+                
+                Tesseract.recognize(
+                    imageData,
+                    'por', // Português
+                    { 
+                        logger: message => {
+                            if (message.status === 'recognizing text') {
+                                document.getElementById('recognition-status').innerText = 
+                                    `Reconhecendo texto: ${Math.floor(message.progress * 100)}%`;
+                            }
+                        }
+                    }
+                ).then(({ data: { text } }) => {
+                    console.log('Texto reconhecido:', text);
+                    document.getElementById('recognition-status').innerText = 'Texto reconhecido. Procurando datas...';
+                    
+                    // Limpar o texto para melhorar o reconhecimento
+                    const cleanText = text
+                        .replace(/\n/g, ' ')           // Remover quebras de linha
+                        .replace(/\s+/g, ' ')          // Remover espaços em excesso
+                        .replace(/[Oo]/g, '0')         // Substituir O por 0
+                        .replace(/[lI]/g, '1')         // Substituir l/I por 1
+                        .trim();
+                    
+                    console.log('Texto limpo:', cleanText);
+                    
+                    // Procurar datas em vários formatos
+                    const datePatterns = [
+                        // Formatos explicitamente com "validade"
+                        /VAL(?:ID)?(?:ADE)?[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        /VENC(?:IMENTO)?[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        
+                        // Formatos de data com texto antes ou depois
+                        /(?:DATA|FABRICADO)[:.]*\s*(?:EM)?\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        /(?:CONSUMIR|CONSUMO)[:.]*\s*(?:ATÉ|ANTES)?\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        
+                        // Formatos de "melhor antes de"
+                        /MELHOR\s*(?:ANTES|ANTES DE)\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        
+                        // Formato comum: "VAL: DD MMM AAAA" (ex: VAL: 01 JAN 2023)
+                        /VAL(?:ID)?(?:ADE)?[:.]*\s*(\d{2})\s*(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*(\d{2,4})/i,
+                        
+                        // Formato comum: "Valido ate: DD/MM/AAAA"
+                        /V[ÁA]LID[OA]\s*(?:AT[ÉE]|HASTA)[:.]*\s*(\d{2}[\/\.\-]\d{2}[\/\.\-]\d{2,4})/i,
+                        
+                        // Formato de data com traços
+                        /(\d{2})[\/\.\-](\d{2})[\/\.\-](\d{2,4})/,
+                        
+                        // Formato usado em alguns produtos: DD.MM.AAAA
+                        /(\d{2})\.(\d{2})\.(\d{2,4})/
+                    ];
+                    
+                    let foundDate = null;
+                    let matchInfo = null;
+                    
+                    // Tentar encontrar uma data usando os padrões
+                    for (const pattern of datePatterns) {
+                        const match = cleanText.match(pattern);
+                        if (match) {
+                            if (match.length === 2) {
+                                // Formato simples: data completa no primeiro grupo
+                                foundDate = match[1];
+                                break;
+                            } else if (match.length === 4 && /JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ/i.test(match[2])) {
+                                // Formato com mês em texto: Dia, Mês(texto), Ano
+                                const day = match[1];
+                                const monthText = match[2].toUpperCase();
+                                const year = match[3];
+                                
+                                // Converter mês em texto para número
+                                const monthMap = {
+                                    'JAN': '01', 'FEV': '02', 'MAR': '03', 'ABR': '04',
+                                    'MAI': '05', 'JUN': '06', 'JUL': '07', 'AGO': '08',
+                                    'SET': '09', 'OUT': '10', 'NOV': '11', 'DEZ': '12'
+                                };
+                                
+                                foundDate = `${day}/${monthMap[monthText]}/${year}`;
+                                break;
+                            } else if (match.length === 4) {
+                                // Formato com grupos separados: dia, mês, ano
+                                foundDate = `${match[1]}/${match[2]}/${match[3]}`;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (foundDate) {
+                        document.getElementById('recognition-status').innerText = `Data encontrada: ${foundDate}`;
+                        
+                        try {
+                            // Tentar identificar o formato da data
+                            const separators = /[\/\.\-]/;
+                            const parts = foundDate.split(separators);
+                            
+                            if (parts.length === 3) {
+                                let day, month, year;
+                                
+                                // Verificar o formato mais provável
+                                if (parseInt(parts[0]) <= 31 && parseInt(parts[1]) <= 12) {
+                                    // Provavelmente DD/MM/YYYY
+                                    day = parts[0];
+                                    month = parts[1];
+                                    year = parts[2];
+                                } else if (parseInt(parts[1]) <= 31 && parseInt(parts[0]) <= 12) {
+                                    // Provavelmente MM/DD/YYYY (formato americano)
+                                    month = parts[0];
+                                    day = parts[1];
+                                    year = parts[2];
+                                } else {
+                                    // Tentar o formato mais comum: DD/MM/YYYY
+                                    day = parts[0];
+                                    month = parts[1];
+                                    year = parts[2];
+                                }
+                                
+                                // Ajustar o ano se necessário
+                                if (year.length === 2) {
+                                    // Adicionar 20 para anos com 2 dígitos (assumindo anos 2000+)
+                                    if (parseInt(year) >= 0 && parseInt(year) <= 30) {
+                                        year = '20' + year;
+                                    } else {
+                                        year = '19' + year;
+                                    }
+                                }
+                                
+                                // Garantir que dia e mês tenham dois dígitos
+                                day = day.padStart(2, '0');
+                                month = month.padStart(2, '0');
+                                
+                                // Criar data para validação
+                                const dateObj = new Date(`${year}-${month}-${day}`);
+                                
+                                // Verificar se a data é válida
+                                if (!isNaN(dateObj.getTime())) {
+                                    const formattedDate = `${year}-${month}-${day}`;
+                                    document.getElementById('expiry-date').value = formattedDate;
+                                    document.getElementById('recognition-status').innerText = `Data encontrada e validada: ${day}/${month}/${year}`;
+                                } else {
+                                    document.getElementById('recognition-status').innerText = `Data encontrada, mas inválida: ${foundDate}. Insira manualmente.`;
+                                }
+                            }
+                        } catch (err) {
+                            console.error('Erro ao processar data:', err, foundDate);
+                            document.getElementById('recognition-status').innerText = `Formato de data não reconhecido: ${foundDate}. Insira manualmente.`;
+                        }
+                    } else {
+                        document.getElementById('recognition-status').innerText = 'Nenhuma data encontrada. Tente novamente ou insira manualmente.';
+                    }
+                }).catch(err => {
+                    console.error('Erro no reconhecimento de texto:', err);
+                    document.getElementById('recognition-status').innerText = 'Erro no reconhecimento. Tente novamente.';
+                });
+                
+            } catch (err) {
+                console.error('Erro ao capturar imagem:', err);
+                document.getElementById('recognition-status').innerText = 'Erro ao capturar imagem';
+            }
         }
     </script>
 </body>
