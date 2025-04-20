@@ -4,20 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Content-Security-Policy" content="default-src * 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src * 'self' 'unsafe-inline'; media-src * blob: 'self'; script-src * 'self' 'unsafe-inline' 'unsafe-eval'; worker-src * blob: 'self' https: data:; connect-src * 'self' data: blob:; img-src * data: blob: 'self';">
-  <title>Scanner de Produtos BR Mania</title>
+  <title>Scanner de Produtos BR</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #00843D;
-      --primary-dark: #00632E;
-      --bg-color: #f0f2f5;
-      --white: #ffffff;
-      --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      --radius: 10px;
-      --transition: all 0.3s ease;
-      --font: 'Poppins', sans-serif;
+      --primary: #00695C;
+      --secondary: #FFCC2F;
+      --dark-green: #004D40;
+      --light-green: #009688;
+      --bg-color: #F5F5F5;
+      --white: #FFFFFF;
+      --gray: #EEEEEE;
+      --dark-gray: #333333;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      --radius: 4px;
+      --transition: all 0.2s ease;
+      --font: 'Lato', sans-serif;
     }
     
     * {
@@ -32,70 +36,129 @@
       display: flex;
       flex-direction: column;
       min-height: 100vh;
+      color: var(--dark-gray);
     }
     
     header {
-      background-color: var(--primary);
-      color: white;
+      background: linear-gradient(to right, var(--primary) 50%, var(--dark-green) 100%);
+      color: var(--white);
       text-align: center;
-      padding: 20px;
+      padding: 16px;
       box-shadow: var(--shadow);
+      position: relative;
+      z-index: 100;
+      margin-bottom: 0;
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+    
+    .logo-wrapper {
+      display: flex;
+      align-items: center;
     }
     
     .logo {
-      display: block;
-      margin: 0 auto;
-      max-width: 150px;
-      margin-bottom: 10px;
+      height: 50px;
+      margin-right: 12px;
     }
     
     h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
+      font-size: 1.4rem;
+      font-weight: 700;
       margin: 0;
+      text-align: left;
+    }
+    
+    .menu-strip {
+      background-color: var(--secondary);
+      height: 8px;
+      width: 100%;
     }
     
     main {
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 20px;
+      padding: 24px 16px;
       max-width: 500px;
       margin: 0 auto;
       width: 100%;
     }
     
+    .card {
+      background-color: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gray);
+      display: flex;
+      align-items: center;
+    }
+    
+    .card-title i {
+      margin-right: 8px;
+      color: var(--secondary);
+    }
+    
     .btn {
       background-color: var(--primary);
-      color: white;
+      color: var(--white);
       border: none;
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 14px;
       margin: 8px 0;
-      font-size: 1.1rem;
-      font-weight: 500;
+      font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: var(--transition);
       box-shadow: var(--shadow);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     
     .btn:hover {
-      background-color: var(--primary-dark);
+      background-color: var(--dark-green);
       transform: translateY(-2px);
     }
     
     .btn i {
       margin-right: 10px;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
+    }
+    
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: var(--dark-gray);
+    }
+    
+    .btn-secondary:hover {
+      background-color: #ffc107;
     }
     
     footer {
       text-align: center;
-      padding: 15px;
-      color: #666;
+      padding: 12px;
+      background-color: var(--primary);
+      color: var(--white);
       font-size: 0.8rem;
     }
     
@@ -106,7 +169,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
+      background-color: rgba(0, 0, 0, 0.6);
       display: none;
       justify-content: center;
       align-items: center;
@@ -114,21 +177,39 @@
     }
     
     .modal-content {
-      background-color: white;
+      background-color: var(--white);
       border-radius: var(--radius);
       width: 90%;
       max-width: 500px;
       padding: 20px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       position: relative;
     }
     
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--gray);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
     .close {
-      position: absolute;
-      top: 10px;
-      right: 15px;
       font-size: 1.5rem;
       cursor: pointer;
+      color: var(--dark-gray);
+      transition: var(--transition);
+    }
+    
+    .close:hover {
+      color: var(--primary);
     }
     
     /* Scanner */
@@ -139,6 +220,7 @@
       overflow: hidden;
       border-radius: var(--radius);
       margin: 15px 0;
+      border: 2px solid var(--gray);
     }
     
     #video {
@@ -154,8 +236,8 @@
       transform: translate(-50%, -50%);
       width: 250px;
       height: 150px;
-      border: 2px solid #00843D;
-      border-radius: 10px;
+      border: 2px solid var(--secondary);
+      border-radius: 4px;
       box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.3);
     }
     
@@ -164,7 +246,7 @@
       position: absolute;
       width: 20px;
       height: 20px;
-      border-color: #00843D;
+      border-color: var(--secondary);
       border-style: solid;
     }
     
@@ -172,14 +254,14 @@
       top: -2px;
       left: -2px;
       border-width: 4px 0 0 4px;
-      border-radius: 5px 0 0 0;
+      border-radius: 4px 0 0 0;
     }
     
     .scan-region::after {
       bottom: -2px;
       right: -2px;
       border-width: 0 4px 4px 0;
-      border-radius: 0 0 5px 0;
+      border-radius: 0 0 4px 0;
     }
     
     .flash {
@@ -194,31 +276,53 @@
     
     /* Lista de produtos */
     .product-list {
-      background-color: white;
+      background-color: var(--white);
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
       max-height: 400px;
       overflow-y: auto;
       margin-top: 15px;
+      border: 1px solid var(--gray);
     }
     
     .product-item {
-      padding: 15px;
-      border-bottom: 1px solid #eee;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--gray);
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      transition: background-color 0.2s;
+    }
+    
+    .product-item:hover {
+      background-color: var(--bg-color);
     }
     
     .product-info h3 {
       margin: 0;
       font-size: 1rem;
-      color: var(--primary-dark);
+      color: var(--primary);
+      font-weight: 600;
     }
     
     .product-info p {
-      margin: 5px 0 0;
+      margin: 4px 0 0;
       font-size: 0.9rem;
       color: #666;
+    }
+    
+    .product-actions button {
+      background: none;
+      border: none;
+      color: #999;
+      cursor: pointer;
+      padding: 5px;
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+    
+    .product-actions button:hover {
+      color: #d32f2f;
     }
     
     .empty-list {
@@ -237,10 +341,25 @@
     .date-input {
       width: 100%;
       padding: 12px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--gray);
       border-radius: var(--radius);
       margin-top: 10px;
       font-size: 1rem;
+      color: var(--dark-gray);
+    }
+    
+    .date-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0, 105, 92, 0.2);
+    }
+    
+    .date-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--primary);
     }
     
     /* Overlay de notificação */
@@ -250,17 +369,26 @@
       left: 50%;
       transform: translateX(-50%);
       background-color: var(--primary);
-      color: white;
+      color: var(--white);
       padding: 12px 20px;
-      border-radius: 50px;
-      box-shadow: var(--shadow);
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       display: none;
       z-index: 1001;
+      font-weight: 500;
     }
     
     .notification.show {
       display: block;
       animation: slideUp 0.3s, fadeOut 0.5s 2s forwards;
+    }
+    
+    .notification.error {
+      background-color: #d32f2f;
+    }
+    
+    .notification.success {
+      background-color: var(--primary);
     }
     
     @keyframes slideUp {
@@ -275,34 +403,47 @@
 </head>
 <body>
   <header>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoV2luZG93cykiIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6NEVFNUU1NUY2MkJBMTFFQUFFQTBBRTVENUQxMTBDMUEiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6NEVFNUU1NjA2MkJBMTFFQUFFQTBBRTVENUQxMTBDMUEiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDo0RUU1RTU1RDYyQkExMUVBQUVBMEFFNUQ1RDExMEMxQSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDo0RUU1RTU1RTYyQkExMUVBQUVBMEFFNUQ1RDExMEMxQSIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PgWdRMYAAARUSURBVHja7J1JaBRBGIV/J4Mb4h7cUBRciYi4b3jQixAEA4riUTx5ETx48+LBm0dFPIgHD+JBEdGLioqKuICoiHE3LnFfcDcuMVHjnteZhGES05npnu6arrwPPjLDTE9P9+vqrq+qamKpVEoYt+lFE1AAjAPGAeOAccA4YBwwDhgHjAPGAePAaXppQ/2pVCrJNvGPWCyW+e+wLM7qwDgoYvg6gHHAOGAcMA4YB4wDxgHjgHHAOHCCGJugrHI6ndZZf9lrTXNzM9sAGQeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAeMA8YB44BxwDhgHDAOGAdlgDkP0LVp9W6PxWKxQtpA3AZQAGwCsBNQvwEwDhgHjAPGAeOAcVCG9GYTlMqSvAMYB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA4YB4wDxgHjgHHAOGAcMA5iiZYW1tOMF+YaiUQiMs4DJJYnl2xdH1UAjAPGAeOAcUCJIQVQxPgdcJCJO28AjAPGAeOAcUBxQAEUMWwDZBwwDpxzHoBdwMxS2YC8ARgHjAPGAeOA4oACKGJ8dAGVzY2ttwHjgHHAOGAcUBxQAEWM1wFUVSUil/Z2G4BxwDhgHFAAUAAUQBEjoA+gJBKJyCRV3ABg+vTpsnjxYunTp4+0trbK5cuX5c2bN/qcWbNmyYoVK2To0KHS3Nwsd+7ckdu3b0c2rteuXSvjx4/X/9++fVuuXr0qP378eHUlEpFJ+oWCN10Fad++vdLQ0CA1NTX67+7du0ttba2sW7dOBg0aJP369dPlO3fulMmTJ0dtWCVVVSX9+/eX2tpa6devnx7n7t27Zf369TJ69GgZOnSoLt+1a5fU1dVF3gaIRAAmTJggAwcOlBs3buiyEydOyPTp06WyslJmzpypi+vr6+Xz58+yYMGCKA6tNnSmTJkiAwYMkOvXr+uyEydOyIwZM6SqqkrPePr06aMHfO7cuTJv3rzoCiBSNkBTU5P8/ftXW/shaMju3bsnHz9+lKamJj3wfgPcvXs3igOrB/z+/fv6MTU1NekB9xuAZdu3b5ePHz/K169fIymAyCwHl5eX64Z9+/ZNWlpatOGze/du+fLli3z//l3LwYUW6AdKrqys1E98uHz58kVaW1t148+dO6f/btmyRR9zDa8BtqxIxEEkBDBixAhZtmyZDBkyRMrKyqR379563MGDB6WhoUE/QRYtWiTLly+XESNGRHFYZdSoUbJs2TKpr6+Xnj176htu7ty5erxBDN++fdNxFT8GOHbsWL0OEMUYIBLrAC0tLfLgwQP5+fOnFsHu3bu14XP//n158uSJGkJ//vyRBw8e6GdRZPn1S27evKkPf8wXLFigHx7Pnj0L/PsRTpQIrRe3A8QDN4ANKi0NLPdnAF4HcAC+DcA4YBwwDiiAyC0H2/QvHbYBMg4YB4wDxgEFwC5gEeO3KOwj42wDYBwwDhgHFIAT+CeAAQB1APUa4tTKDwAAAABJRU5ErkJggg==" alt="BR Mania" class="logo">
-    <h1>Scanner de Produtos</h1>
+    <div class="header-content">
+      <div class="logo-wrapper">
+        <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFF0lEQVR4nO1ZW2wVVRRdy9RKpRQE5RWkyCMIITEhPGwqcyt+GB80AhFj4tfRROMfftj44aMfilY/RPyAYDQaSgSUmvDQUhQCtiKiVKGU8ixgBUFaa1m++9Z0b+aemXPuvcXERNbHTObMnrP32XvttdfMlJT8j1CAUCgkTj0ej5P9/f2SfX19JL2Gb8bGxkjm5ubKcwUFBSRnzJhBcsaMGSQLCwshIEIlJSW6mpqa0Ny5c3H8+HHjokOHDqGsrAxnz57F4OCgcf7KlSuora1FY2MjHRWnEJCUiZDwYX60srIytLa2oqenB97Bcc/58+extLI8KQEZg7CQ4MX5+flxnB5/4MCByVqeOQjTxYwDjgDWLSc3d1I2J2V7MpQRCE3DmD9/Pi5evIienh56cVNTE8rLy3Hu3Lm47ba0tKCiogKnT59GX1+fcQ8EPAO9vb0SRgbixo0beGrlKmRnZ2dOA4IGNScnB1VVVWhra6MbdXV1oba2VtRPe9GlS5fkwbOzs8Oq0ejKykoJoc7OTnpG1Kfjx49jwYIFmYOQqiKuScRrCQ64V7DPnTsna5eWltKz5s2bh+PHjqG7u5tC9SORSBiDfj/qG06ibNFCeGdgw7p1DH0ZCiER+ezsOVxrbzfOj46OGucFY9/+fVi6ZLF2rkP7H2+++y4++/A9rF7zFD3/4IEvMDQ8jIb1L3tz4NdQxDU0MozsyBdxG1X/muvZ7tu7B3W1q7RrBgYHxPq/9OzT2L5rF+6+axGtPb+nA7958MvOPLg1FLuF9u/ZC0c20Z+cqxk6B8LIQFRWLMemDduEc8J7PBb8s09+Ey/hq4sBJ8D+w5HtGLnVa06lPz8+BqpXr8J7Wx7Dx9u3OtHCfUODw+L4Hw4HX9V5nW+UCKDQnve34qZXX8Pf/f0eHXQ7JmTwhRdfwA9Hj9KnfXbVyniJ9Mko4gkf+fRTnPv5JO5ZskQ0QZGAg3jvnT3YuX0r7r33Pu9+pC+nB7XQwH0bN+D71laRQgpBJzJcmYwRuGfJfXh4+f14fedO7wYkTM0CxC+x4dVXsHHdC1jxyCrpBD0P4qXwTUJWVhY2b3qTNHDswLdxaRRXuElCiD8cLc2nxLp4FzF8aA9E8rEPPqJEJ9JZs2hR3I/4JoL/FcVVoakvj8TvxUlTgQXvd8KXBpIWMwfiyRPHdPv+/WFIXdUVIREbvkHI0IA3iCQ6caxd4FLKIl2mT/WO5ABjoydOmhuWCRpIqgrzTdypSgbLnTWD0L8dQjq5C0GonRdJk/cPj47i4MFvyJtqampoA6dIv2U14DQMPT1xCFkbPsvK/OZ+fPTp5/jrxg28vW0bWeWKpCw6LQjdgekqmXk+MYRiJdQBxO/NzbjeeRstTafozzJL99q0IZKFkJuICNcl+ZzkWpZYhWL9YGwUQ9euxm3w07SpIBQrka6K8iYPxcUOYZHQjC5pEQ+ht95gvRnLN24bGkQYWaXGCKdwUogZtE0ThOW5jX7AVCl1GnAb8EWYDONkICwkbFoggz0iMOb8GHsxSc9jlNP2A9MSQiYI06vR1EOYyNgITTWMpiWEbC9tqjzUNBVtpgXCVgNNnddmGJpSCE1FCJk0MFXJLGUIk4y6pNZBGNpMW0KLl1CdZJ8WhI2EicB0v7SNBYL9u2z9QJfQTAuZRxMJIXoCSytR6R6zRQPa4tQkZSKmI6HdvGnLWQedpLjHdCECgzDJqQDe0QC9Bvz/1vgH2z/6CbIkKdQAAAAASUVORK5CYII=" alt="Petrobras" class="logo">
+        <h1>Scanner de Produtos <span style="font-weight: 300">BR</span></h1>
+      </div>
+    </div>
   </header>
+  <div class="menu-strip"></div>
 
   <main>
-    <button class="btn" id="scannerBtn"><i class="fas fa-qrcode"></i> Escanear Produto</button>
-    <button class="btn" id="productListBtn"><i class="fas fa-list"></i> Produtos Cadastrados</button>
-    <button class="btn" id="reportBtn"><i class="fas fa-file-pdf"></i> Gerar Relatório</button>
+    <div class="card">
+      <div class="card-title"><i class="fas fa-barcode"></i>Controle de Produtos</div>
+      <button class="btn" id="scannerBtn"><i class="fas fa-qrcode"></i> Escanear Produto</button>
+      <button class="btn" id="productListBtn"><i class="fas fa-list"></i> Produtos Cadastrados</button>
+      <button class="btn btn-secondary" id="reportBtn"><i class="fas fa-file-pdf"></i> Gerar Relatório</button>
+    </div>
   </main>
   
   <div class="modal" id="scannerModal">
     <div class="modal-content">
-      <span class="close" id="closeScanner">&times;</span>
-      <h2>Escaneie o código de barras</h2>
+      <div class="modal-header">
+        <div class="modal-title">Escaneie o código de barras</div>
+        <span class="close" id="closeScanner">&times;</span>
+      </div>
       <div id="scanner-container">
         <video id="video" playsinline></video>
         <div class="scan-region"></div>
       </div>
       <div class="form-container">
-        <input type="text" id="dataInput" class="date-input" placeholder="Data de validade (DD/MM/AAAA)" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}">
+        <label for="dataInput" class="date-label">Data de validade:</label>
+        <input type="text" id="dataInput" class="date-input" placeholder="DD/MM/AAAA" pattern="[0-9]{2}/[0-9]{2}/[0-9]{4}">
       </div>
     </div>
   </div>
   
   <div class="modal" id="productListModal">
     <div class="modal-content">
-      <span class="close" id="closeProductList">&times;</span>
-      <h2>Produtos Cadastrados <span id="productCount">(0)</span></h2>
+      <div class="modal-header">
+        <div class="modal-title">Produtos Cadastrados <span id="productCount">(0)</span></div>
+        <span class="close" id="closeProductList">&times;</span>
+      </div>
       <div class="product-list" id="productListContainer">
         <div class="empty-list">
           <i class="fas fa-shopping-bag"></i>
@@ -315,7 +456,7 @@
   <div class="notification" id="notification"></div>
   
   <footer>
-    &copy; 2025 BR Mania - Scanner de Produtos
+    &copy; 2025 Petrobras Distribuidora - BR - Todos os direitos reservados
   </footer>
 
   <script src="https://unpkg.com/@zxing/library@0.19.1"></script>
@@ -387,7 +528,7 @@
         })
         .catch(err => {
           console.error(err);
-          showNotification('Erro ao acessar a câmera. Verifique as permissões.');
+          showNotification('Erro ao acessar a câmera. Verifique as permissões.', 'error');
         });
     }
     
@@ -463,7 +604,7 @@
           const dataValidade = dataInput.value.trim();
           
           if (dataValidade && !/^\d{2}\/\d{2}\/\d{4}$/.test(dataValidade)) {
-            showNotification('Por favor, insira a data no formato DD/MM/AAAA.');
+            showNotification('Por favor, insira a data no formato DD/MM/AAAA.', 'error');
             return;
           }
           
@@ -481,7 +622,7 @@
           dataInput.value = '';
           
           // Feedback
-          showNotification(`Produto "${produto.nome}" adicionado com sucesso!`);
+          showNotification(`Produto "${produto.nome}" adicionado com sucesso!`, 'success');
           
           // Fechar modal após adicionar
           setTimeout(() => {
@@ -490,7 +631,7 @@
         }
       } catch (err) {
         console.error(err);
-        showNotification('Erro ao processar o código de barras');
+        showNotification('Erro ao processar o código de barras', 'error');
       }
     }
     
@@ -538,7 +679,7 @@
             <div class="product-info">
               <h3>${produto.nome}</h3>
               <p>Código: ${produto.codigo}</p>
-              ${produto.data ? `<p>Validade: ${produto.data}</p>` : ''}
+              ${produto.data ? `<p><strong>Validade:</strong> ${produto.data}</p>` : ''}
             </div>
             <div class="product-actions">
               <button onclick="removeProduct(${index})">
@@ -557,14 +698,14 @@
       if (confirm('Deseja remover este produto?')) {
         produtos.splice(index, 1);
         updateProductList();
-        showNotification('Produto removido');
+        showNotification('Produto removido', 'success');
       }
     }
     
     // Gerar relatório PDF
     function generateReport() {
       if (produtos.length === 0) {
-        showNotification('Adicione produtos antes de gerar o relatório');
+        showNotification('Adicione produtos antes de gerar o relatório', 'error');
         return;
       }
       
@@ -572,71 +713,95 @@
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       
-      // Título
-      doc.setFontSize(20);
-      doc.setTextColor(0, 132, 61); // Verde BR Mania
-      doc.text("RELATÓRIO DE PRODUTOS", 105, 20, { align: "center" });
+      // Logo
+      // Pode adicionar uma imagem logo aqui, se necessário
       
-      doc.setFontSize(14);
-      doc.text("BR MANIA", 105, 30, { align: "center" });
+      // Título
+      doc.setFontSize(16);
+      doc.setTextColor(0, 105, 92);
+      doc.text("RELATÓRIO DE PRODUTOS BR", 105, 20, { align: "center" });
+      
+      // Linha amarela
+      doc.setDrawColor(255, 204, 47);
+      doc.setLineWidth(1);
+      doc.line(20, 25, 190, 25);
       
       doc.setFontSize(10);
-      doc.setTextColor(0, 0, 0); // Preto
+      doc.setTextColor(0, 0, 0);
       
       // Data atual
       const dataAtual = new Date().toLocaleDateString('pt-BR');
-      doc.text(`Data: ${dataAtual}`, 105, 40, { align: "center" });
-      doc.text(`Total de produtos: ${produtos.length}`, 105, 45, { align: "center" });
+      doc.text(`Data de emissão: ${dataAtual}`, 20, 35);
+      doc.text(`Total de produtos: ${produtos.length}`, 20, 42);
       
-      // Linha divisória
-      doc.setDrawColor(0, 132, 61);
-      doc.setLineWidth(0.5);
-      doc.line(20, 50, 190, 50);
+      // Cabeçalho da tabela
+      doc.setFillColor(0, 105, 92);
+      doc.setDrawColor(0, 105, 92);
+      doc.setTextColor(255, 255, 255);
+      doc.rect(20, 50, 170, 10, 'F');
+      doc.text("Produto", 25, 56);
+      doc.text("Código", 100, 56);
+      doc.text("Validade", 150, 56);
       
       // Produtos
-      let y = 60;
+      let y = 70;
+      doc.setTextColor(0, 0, 0);
       
       produtos.forEach((produto, index) => {
         // Se estiver perto do fim da página, criar nova página
         if (y > 270) {
           doc.addPage();
-          y = 20;
+          
+          // Linha amarela no topo da nova página
+          doc.setDrawColor(255, 204, 47);
+          doc.setLineWidth(1);
+          doc.line(20, 15, 190, 15);
+          
+          // Cabeçalho da tabela na nova página
+          doc.setFillColor(0, 105, 92);
+          doc.setDrawColor(0, 105, 92);
+          doc.setTextColor(255, 255, 255);
+          doc.rect(20, 25, 170, 10, 'F');
+          doc.text("Produto", 25, 31);
+          doc.text("Código", 100, 31);
+          doc.text("Validade", 150, 31);
+          
+          doc.setTextColor(0, 0, 0);
+          y = 45;
         }
         
-        doc.setFontSize(12);
-        doc.setTextColor(0, 132, 61);
-        doc.text(`${index + 1}. ${produto.nome}`, 20, y);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        doc.text(`Código: ${produto.codigo}`, 25, y + 6);
-        
-        if (produto.data) {
-          doc.text(`Validade: ${produto.data}`, 25, y + 12);
-          y += 18;
-        } else {
-          y += 12;
+        // Alternar cores de fundo para linhas da tabela
+        if (index % 2 === 0) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(20, y - 6, 170, 10, 'F');
         }
+        
+        doc.text(produto.nome.substring(0, 35), 25, y);
+        doc.text(produto.codigo, 100, y);
+        doc.text(produto.data || "--", 150, y);
+        
+        y += 12;
       });
       
       // Rodapé
-      doc.setDrawColor(0, 132, 61);
+      doc.setDrawColor(0, 105, 92);
       doc.setLineWidth(0.5);
       doc.line(20, 280, 190, 280);
       
       doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      doc.text("BR MANIA - Relatório de Inventário", 105, 287, { align: "center" });
+      doc.setTextColor(0, 105, 92);
+      doc.text("© 2025 Petrobras Distribuidora - BR - Todos os direitos reservados", 105, 287, { align: "center" });
       
       // Salvar PDF
-      doc.save(`inventario_brmania_${dataAtual.replace(/\//g, '-')}.pdf`);
-      showNotification('Relatório PDF gerado com sucesso!');
+      doc.save(`relatório_produtos_br_${dataAtual.replace(/\//g, '-')}.pdf`);
+      showNotification('Relatório PDF gerado com sucesso!', 'success');
     }
     
     // Função para mostrar notificações
-    function showNotification(message) {
+    function showNotification(message, type = 'success') {
       notification.textContent = message;
-      notification.classList.add('show');
+      notification.className = 'notification';
+      notification.classList.add('show', type);
       
       setTimeout(() => {
         notification.classList.remove('show');
