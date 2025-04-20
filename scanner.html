@@ -646,6 +646,9 @@
                 // Mostrar carregamento
                 productName.disabled = true;
                 productName.value = 'Buscando informações do produto...';
+                scannerStatus.textContent = `Consultando API para o código: ${code}`;
+                
+                console.log('Enviando requisição para a API com o código:', code);
                 
                 // Buscar informações do produto usando a API do Gemini
                 fetch('/api/product-info', {
@@ -655,20 +658,35 @@
                     },
                     body: JSON.stringify({ barcode: code }),
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Status da resposta:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Dados recebidos da API:', data);
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    
                     productName.value = data.name || '';
+                    scannerStatus.textContent = 'Produto encontrado!';
                     productName.disabled = false;
                 })
                 .catch(error => {
                     console.error('Erro ao buscar informações do produto:', error);
+                    scannerStatus.textContent = `Erro: ${error.message}`;
                     productName.value = '';
                     productName.disabled = false;
+                    // Adicionar um alerta para facilitar o debug
+                    alert(`Erro ao buscar informações do produto: ${error.message}`);
                 });
                 
                 // Esconder scanner e mostrar formulário
                 scannerContainer.classList.add('hidden');
-                scannerStatus.classList.add('hidden');
+                scannerStatus.classList.remove('hidden');
                 manualBtn.classList.add('hidden');
                 manualInput.classList.add('hidden');
                 productForm.classList.remove('hidden');

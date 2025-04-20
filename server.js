@@ -33,27 +33,47 @@ function getLocalIP() {
 
 // API para buscar informações de produtos
 app.post('/api/product-info', async (req, res) => {
+    console.log('Requisição recebida para /api/product-info');
+    console.log('Corpo da requisição:', req.body);
+    
     try {
         const { barcode } = req.body;
         
         if (!barcode) {
+            console.log('Erro: Código de barras não fornecido');
             return res.status(400).json({ error: 'Código de barras não fornecido' });
         }
+        
+        console.log('Consultando Gemini para o código de barras:', barcode);
         
         const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         
         const prompt = `Eu tenho um produto com o código de barras ${barcode}. 
         Por favor, forneça informações sobre este produto, como nome do produto.
-        Responda apenas com o nome do produto, sem informações adicionais.`;
+        Responda apenas com o nome do produto, sem informações adicionais. 
+        Se não souber o nome exato, faça uma estimativa baseada em produtos similares.`;
         
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        console.log('Enviando prompt para o Gemini:', prompt);
         
-        res.json({ name: text.trim() });
+        try {
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            console.log('Resposta recebida do Gemini:', text);
+            
+            const productName = text.trim();
+            console.log('Nome do produto encontrado:', productName);
+            
+            res.json({ name: productName });
+        } catch (apiError) {
+            console.error('Erro na API do Gemini:', apiError);
+            // Fornecer um nome genérico para não bloquear o fluxo
+            res.json({ name: `Produto ${barcode.substring(0, 6)}`, error: 'Erro na API Gemini' });
+        }
     } catch (error) {
-        console.error('Erro ao buscar informações do produto:', error);
-        res.status(500).json({ error: 'Erro ao buscar informações do produto' });
+        console.error('Erro ao processar requisição:', error);
+        res.status(500).json({ error: 'Erro ao buscar informações do produto', details: error.message });
     }
 });
 
