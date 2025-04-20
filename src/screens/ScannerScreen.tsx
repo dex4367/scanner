@@ -3,7 +3,7 @@ import { View, StyleSheet, Alert, Image, TouchableOpacity, Modal, ScrollView, Ac
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { Button, Text, TextInput, IconButton, Card, RadioButton, Chip } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { BarCodeScanner } from 'expo-barcode-scanner';
+import { BarCodeScanner, BarCodeScannerResult } from 'expo-barcode-scanner';
 import * as SQLite from 'react-native-sqlite-storage';
 import * as ImagePicker from 'react-native-image-picker';
 import * as ImageManipulator from 'react-native-image-manipulator';
@@ -26,6 +26,9 @@ const ScannerScreen = () => {
   const [expiryDate, setExpiryDate] = useState('');
   const [productCode, setProductCode] = useState('');
   
+  // Barcode scanner permissions
+  const [hasBarcodePermission, setHasBarcodePermission] = useState(null);
+  
   // Modo de escaneamento (código de barras ou data de validade)
   const [scanMode, setScanMode] = useState(null); // 'barcode' ou 'date'
   
@@ -46,6 +49,10 @@ const ScannerScreen = () => {
         await requestPermission();
       }
       
+      // Solicitar permissão para o barcode scanner
+      const { status } = await BarCodeScanner.requestPermissionsAsync();
+      setHasBarcodePermission(status === 'granted');
+      
       // Initialize database
       db.transaction((tx) => {
         tx.executeSql(
@@ -62,6 +69,14 @@ const ScannerScreen = () => {
   const handleBarCodeScanned = ({ type, data }) => {
     if (scanned) return;
     
+    console.log('Scanned barcode:', type, data);
+    
+    // Verifica se o código tem um formato e dados válidos
+    if (!data || data.trim() === '') {
+      console.log('Invalid barcode data:', data);
+      return;
+    }
+    
     setScanned(true);
     setProductCode(data);
     setProductName(`Produto ${data}`);
@@ -71,6 +86,11 @@ const ScannerScreen = () => {
       const ReactNativeVibration = require('react-native').Vibration;
       ReactNativeVibration.vibrate(200);
     }
+    
+    // Feedback de sucesso
+    Alert.alert('Sucesso', `Código lido: ${data}`, [
+      { text: 'OK', onPress: () => console.log('Code scanned alert closed') }
+    ]);
   };
 
   // Save product to database
@@ -655,30 +675,72 @@ const ScannerScreen = () => {
       ) : scanMode === 'barcode' && !scanned ? (
         // Scanner view
         <View style={styles.scannerContainer}>
-          <BarCodeScanner
-            onBarCodeScanned={handleBarCodeScanned}
-            style={StyleSheet.absoluteFillObject}
-          />
-          
-          <View style={styles.scanRegionHighlight}>
-            <View style={styles.scanAnimation} />
-          </View>
-          
-          <View style={styles.scannerOverlay}>
-            <Text style={styles.scannerHint}>
-              Aponte para um código de barras
-            </Text>
-          </View>
-          
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={resetToModeSelection}
-          >
-            <IconButton 
-              icon="arrow-left"
-              size={24}
-            />
-          </TouchableOpacity>
+          {hasBarcodePermission === false ? (
+            <View style={styles.permissionContainer}>
+              <Text style={styles.permissionText}>Sem acesso à câmera</Text>
+              <Text style={styles.permissionSubText}>
+                Este aplicativo precisa de acesso à câmera para escanear códigos de barras.
+              </Text>
+              <Button 
+                mode="contained" 
+                onPress={async () => {
+                  const { status } = await BarCodeScanner.requestPermissionsAsync();
+                  setHasBarcodePermission(status === 'granted');
+                }}
+                style={{marginTop: 20}}
+              >
+                Solicitar Permissão
+              </Button>
+            </View>
+          ) : (
+            <>
+              <BarCodeScanner
+                onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+                style={StyleSheet.absoluteFillObject}
+                barCodeTypes={[
+                  BarCodeScanner.Constants.BarCodeType.qr,
+                  BarCodeScanner.Constants.BarCodeType.code39,
+                  BarCodeScanner.Constants.BarCodeType.code128,
+                  BarCodeScanner.Constants.BarCodeType.ean13,
+                  BarCodeScanner.Constants.BarCodeType.ean8,
+                  BarCodeScanner.Constants.BarCodeType.upc_e
+                ]}
+              />
+              
+              <View style={styles.scanRegionHighlight}>
+                <View style={styles.scanAnimation} />
+              </View>
+              
+              <View style={styles.scannerOverlay}>
+                <Text style={styles.scannerHint}>
+                  Aponte para um código de barras
+                </Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.flashButtonScanner}
+                onPress={toggleFlash}
+              >
+                <IconButton 
+                  icon={flash === 'on' ? 'flash' : 'flash-off'}
+                  size={24}
+                />
+                <Text style={styles.flashButtonText}>
+                  {flash === 'on' ? 'Desligar Flash' : 'Ligar Flash'}
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={resetToModeSelection}
+              >
+                <IconButton 
+                  icon="arrow-left"
+                  size={24}
+                />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       ) : scanMode === 'barcode' && scanned ? (
         // Form view after scan
@@ -1179,6 +1241,19 @@ const styles = StyleSheet.create({
   dateInstructionText: {
     textAlign: 'center',
     color: '#666',
+  },
+  flashButtonScanner: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 10,
+  },
+  flashButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
