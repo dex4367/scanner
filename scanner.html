@@ -11,6 +11,8 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <!-- Adicionar QuaggaJS direto via CDN - biblioteca alternativa sem Web Workers -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <!-- API do Google Generative AI -->
+    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.2.0/dist/index.min.js"></script>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -377,6 +379,38 @@
             
             let quaggaInitialized = false;
             
+            // Inicializar a API do Google Generative AI
+            const API_KEY = "AIzaSyDI9sEOatq9CYjFjxO5fzsvN3knkD6_omc";
+            
+            // Banco de dados de produtos conhecidos
+            const knownProducts = {
+                "7891000053508": "Leite Condensado Moça Nestlé Lata 395g",
+                "7896029000016": "Leite Longa Vida Integral Elegê 1L",
+                "7891000100103": "Achocolatado Nescau 2.0 Lata 400g",
+                "7891150050358": "Café Torrado e Moído Pilão 500g",
+                "7896005804316": "Arroz Branco Tipo 1 Tio João 5kg",
+                "7896292331190": "Feijão Carioca Camil 1kg",
+                "7891024134115": "Macarrão Espaguete Adria 500g",
+                "7896062401108": "Maionese Tradicional Hellmann's 500g",
+                "7891080147402": "Açúcar Refinado Especial União 1kg",
+                "7891030001284": "Farinha de Trigo Dona Benta 1kg",
+                "7891098000033": "Óleo de Soja Liza 900ml",
+                "7891000252826": "Chocolate ao Leite Nestlé 90g",
+                "7891141014529": "Refrigerante Coca-Cola 2L",
+                "7891149201003": "Biscoito Recheado Oreo 90g", 
+                "7896276060024": "Margarina Qualy 500g",
+                "7891150037373": "Café em Pó Pilão Tradicional 500g",
+                "7891021006001": "Desodorante Rexona Men Active 150ml",
+                "7891010577100": "Sabonete Dove Original 90g",
+                "7500435146425": "Creme Dental Colgate Total 12 90g",
+                "7891024132555": "Papel Higiênico Neve Folha Dupla 12 rolos",
+                "7896094910157": "Sabão em Pó Omo Multiação 1.6kg",
+                "7894000010014": "Água Mineral sem Gás Crystal 510ml",
+                "7896072042604": "Cerveja Brahma Lata 350ml",
+                "7891010045326": "Creme para Pentear Seda 295ml",
+                "7891020000197": "Detergente Líquido Ypê 500ml"
+            };
+            
             // Iniciar o scanner
             initScanner();
             
@@ -646,43 +680,32 @@
                 // Mostrar carregamento
                 productName.disabled = true;
                 productName.value = 'Buscando informações do produto...';
-                scannerStatus.textContent = `Consultando API para o código: ${code}`;
+                scannerStatus.textContent = `Consultando para o código: ${code}`;
                 
-                console.log('Enviando requisição para a API com o código:', code);
+                console.log('Processando código de barras:', code);
                 
-                // Buscar informações do produto usando a API do Gemini
-                fetch('/api/product-info', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ barcode: code }),
-                })
-                .then(response => {
-                    console.log('Status da resposta:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`Erro na API: ${response.status} ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Dados recebidos da API:', data);
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-                    
-                    productName.value = data.name || '';
+                // Verificar primeiro no banco de dados local
+                if (knownProducts[code]) {
+                    console.log('Produto encontrado no banco de dados local');
+                    productName.value = knownProducts[code];
                     scannerStatus.textContent = 'Produto encontrado!';
                     productName.disabled = false;
-                })
-                .catch(error => {
-                    console.error('Erro ao buscar informações do produto:', error);
-                    scannerStatus.textContent = `Erro: ${error.message}`;
-                    productName.value = '';
-                    productName.disabled = false;
-                    // Adicionar um alerta para facilitar o debug
-                    alert(`Erro ao buscar informações do produto: ${error.message}`);
-                });
+                } else {
+                    console.log('Produto não encontrado localmente, tentando buscar online...');
+                    // Tentar buscar usando a API do Gemini
+                    fetchProductNameWithGemini(code)
+                        .then(productNameResult => {
+                            productName.value = productNameResult || `Produto ${code.substring(0, 6)}`;
+                            scannerStatus.textContent = productNameResult ? 'Produto encontrado!' : 'Nome gerado automaticamente';
+                            productName.disabled = false;
+                        })
+                        .catch(error => {
+                            console.error('Erro ao buscar nome do produto:', error);
+                            productName.value = `Produto ${code.substring(0, 6)}`;
+                            productName.disabled = false;
+                            scannerStatus.textContent = 'Usando nome padrão';
+                        });
+                }
                 
                 // Esconder scanner e mostrar formulário
                 scannerContainer.classList.add('hidden');
@@ -693,6 +716,35 @@
                 
                 // Deixar a data de validade vazia para que o usuário defina manualmente
                 expiryDate.value = '';
+            }
+            
+            // Função para buscar nome do produto usando a API do Gemini
+            async function fetchProductNameWithGemini(barcode) {
+                try {
+                    // Inicializa a API
+                    const genAI = new googleGenerativeAI.GoogleGenerativeAI(API_KEY);
+                    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+                    
+                    // Criar o prompt
+                    const prompt = `Eu tenho um produto com o código de barras ${barcode}. 
+                    Por favor, forneça informações sobre este produto, como nome do produto.
+                    Responda apenas com o nome do produto, sem informações adicionais. 
+                    Se não souber o nome exato, faça uma estimativa baseada em produtos similares.`;
+                    
+                    console.log('Enviando prompt para o Gemini:', prompt);
+                    
+                    // Fazer a requisição
+                    const result = await model.generateContent(prompt);
+                    const response = await result.response;
+                    const text = response.text().trim();
+                    
+                    console.log('Resposta recebida do Gemini:', text);
+                    
+                    return text;
+                } catch (error) {
+                    console.error('Erro ao consultar API Gemini:', error);
+                    return null;
+                }
             }
         });
     </script>
